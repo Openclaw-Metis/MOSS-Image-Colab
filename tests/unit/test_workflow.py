@@ -92,6 +92,32 @@ def test_actual_node_contract_rejects_missing_weights():
         validate_nodes(graph, {})
 
 
+def test_autogrow_inputs_are_validated_in_their_flattened_api_form():
+    # Declaration as served by ComfyUI 0.44 for TextEncodeMOSSImageEdit.images (live L4 query).
+    autogrow = [
+        "COMFY_AUTOGROW_V3",
+        {
+            "template": {"input": {"required": {"image": ["IMAGE", {}]}}},
+            "prefix": "image_",
+            "min": 1,
+            "max": 10,
+        },
+    ]
+    info = {
+        "Encode": {"input": {"required": {"images": autogrow}}},
+        "LoadImage": {"input": {"required": {}}},
+    }
+    graph = {
+        "11": {"class_type": "LoadImage", "inputs": {}},
+        "4": {"class_type": "Encode", "inputs": {"images.image_0": ["11", 0]}},
+    }
+    validate_nodes(graph, info)
+    for inputs in ({}, {"images.image_0": ["99", 0]}, {"images.image_0": "x"}):
+        graph["4"]["inputs"] = inputs
+        with pytest.raises(ValidationError):
+            validate_nodes(graph, info)
+
+
 def test_own_pending_uploads_pass_image_enums_but_nothing_else_does():
     # Real ComfyUI lists only files already in its input folder; the job uploads its own later.
     info = {

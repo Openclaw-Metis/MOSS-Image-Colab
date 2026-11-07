@@ -442,6 +442,19 @@ def validate_nodes(graph: dict, object_info: dict, pending_uploads=frozenset()) 
         inputs = node["inputs"]
         required = info["input"].get("required", {})
         for key, declaration in required.items():
+            if isinstance(declaration, list) and declaration[:1] == ["COMFY_AUTOGROW_V3"]:
+                # Dynamic group: the API carries it flattened as "<key>.<prefix><n>" entries.
+                options = declaration[1] if len(declaration) > 1 else {}
+                group = [name for name in inputs if name.startswith(f"{key}.")]
+                if not options.get("min", 1) <= len(group) <= options.get("max", len(group)):
+                    raise ValidationError(
+                        f"E_CAPABILITY：節點 {node['class_type']} 的 {key} 數量不符"
+                    )
+                for name in group:
+                    value = inputs[name]
+                    if not (isinstance(value, list) and len(value) == 2 and value[0] in graph):
+                        raise ValidationError("工作流連線不存在")
+                continue
             if key not in inputs:
                 raise ValidationError(f"E_CAPABILITY：節點 {node['class_type']} 缺少 {key}")
             value = inputs[key]
