@@ -75,8 +75,9 @@ function scheduleSave(){S.dirty=true;clearTimeout(S.timer);if(S.project&&!S.subm
   S.timer=setTimeout(()=>save().catch(e=>message(e.message)),500);}
 function setForm(values){const old=S.form;S.form=values;
   if(old&&old[0]!==values[0]){S.canvas.captionOverride=null;S.canvas.revision++;S.canvas.render();}
-  if(!old)S.canvas.setSize(Number(values[2]),Number(values[3]));
-  $("moss-confirm-size").hidden=S.canvas.width===Number(values[2])&&S.canvas.height===Number(values[3]);
+  // Sizes apply at once: layout boxes are stored normalised, so they keep their relative place.
+  const width=Number(values[2]),height=Number(values[3]);
+  if(S.canvas.width!==width||S.canvas.height!==height)S.canvas.setSize(width,height);
   if(!old||old[5]!==values[5])S.view=values[5]?"layout":"result";
   showView(S.view);showProfile(values[6]);
 }
@@ -145,8 +146,6 @@ window.mossStudio={
   async init(){const session=await request("/api/session");S.csrf=session.csrf;S.session=session;bindProjectMenu();
     $("moss-edit-layout").onclick=()=>showView("layout");
     $("moss-view-result").onclick=()=>showView("result");
-    $("moss-confirm-size").onclick=()=>{S.canvas.setSize(Number(S.form[2]),Number(S.form[3]));
-      $("moss-confirm-size").hidden=true;scheduleSave();};
     S.canvas=new LayoutCanvas(request,scheduleSave,()=>S.form?.[0]||"");
     const runtime=await request("/api/runtime");const gpu=runtime.gpus[0];
     const ram=Number.isFinite(runtime.ram_total_bytes)?`${(runtime.ram_total_bytes/1024**3).toFixed(1)} GiB`:"未知";
@@ -165,6 +164,10 @@ window.mossStudio={
     const job=localStorage.getItem("moss_studio_job");if(job)poll(job);return values;
   },
   touch(values){if(!S.canvas||!S.project)return;setForm(values);showProfile(values[6]);if(values[5])showView("layout");scheduleSave();},
+  aspectOf(values,presets){const width=Number(values[2]),height=Number(values[3]);
+    return Object.keys(presets).find(k=>presets[k][0]===width&&presets[k][1]===height)||"custom";},
+  applyAspect(aspect,values,presets){const size=presets[aspect];if(!size)return [values[2],values[3]];
+    const next=[...values];next[2]=size[0];next[3]=size[1];this.touch(next);return size;},
   async refreshSession(){if(!S.session)return;S.session=await request("/api/session");
     showProfile((S.form||defaults)[6]);await loadLoras();},
   async submit(values){if(S.submitting)return;
@@ -172,7 +175,6 @@ window.mossStudio={
     S.submitting=true;
     try{let payload=S.pending;
       if(!payload){setForm(values);
-      if(!$("moss-confirm-size").hidden)throw Error("請先確認尺寸變更，再產生圖片");
       clearTimeout(S.timer);await save();
       // The backbone may have been switched on the model tab since this page loaded.
       S.session=await request("/api/session");
