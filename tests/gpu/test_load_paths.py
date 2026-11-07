@@ -35,7 +35,9 @@ def real_engine():
 @pytest.mark.parametrize("task", ["t2i", "vision", "edit"])
 def test_real_bf16_int8_load_path(real_engine, task):
     root = Path(__file__).resolve().parents[2]
-    graph = deepcopy(json.loads((root / f"workflows/probes/{task}_load.json").read_text()))
+    graph = deepcopy(
+        json.loads((root / f"workflows/probes/{task}_load.json").read_text(encoding="utf-8"))
+    )
     graph["7"]["inputs"]["seed"] += 1  # Avoid a cached completion on rerun.
     prompt_id = new_id()
     response = real_engine.submit(graph, new_id(), prompt_id)

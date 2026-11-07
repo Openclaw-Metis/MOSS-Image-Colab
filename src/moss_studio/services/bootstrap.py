@@ -13,6 +13,10 @@ from moss_studio.services.processes import ManagedProcess
 from moss_studio.services.resources import inspect_runtime, l4_preflight
 from moss_studio.storage.atomic import atomic_json, file_lock, private_dir
 
+# "auto" leaves ComfyUI's own memory management in charge (no flag). Stage 3 measures
+# lowvram against auto on the L4 before changing the default in runtime.lock.json.
+VRAM_FLAGS = {"lowvram": ["--lowvram"], "auto": [], "highvram": ["--highvram"]}
+
 
 class ColabBootstrap:
     def __init__(
@@ -24,8 +28,12 @@ class ColabBootstrap:
         self.repository = Path(repository).resolve()
         self.root = private_dir(root)
         self.model_root = private_dir(model_root)
-        self.runtime = json.loads((self.repository / "configs/runtime.lock.json").read_text())
-        self.models = json.loads((self.repository / "configs/models.lock.json").read_text())
+        self.runtime = json.loads(
+            (self.repository / "configs/runtime.lock.json").read_text(encoding="utf-8")
+        )
+        self.models = json.loads(
+            (self.repository / "configs/models.lock.json").read_text(encoding="utf-8")
+        )
         self.comfy = self.root / "ComfyUI"
         self.python = self.root / "venv/bin/python"
         self.engine = ManagedProcess(self.root / ".runtime", "comfy")
@@ -98,7 +106,23 @@ class ColabBootstrap:
             raise ValidationError("；".join(errors))
         return [str(download_locked(artifact, self.model_root)) for artifact in artifacts]
 
-    def start_engine(self) -> dict:
+    def engine_command(self, vram_mode: str | None = None) -> list[str]:
+        """ComfyUI command; VRAM mode comes from runtime.lock.json unless a probe overrides it."""
+        mode = vram_mode or self.runtime.get("engine_vram_mode", "lowvram")
+        if mode not in VRAM_FLAGS:
+            raise ValidationError("未知的引擎 VRAM 模式")
+        return [
+            str(self.python),
+            "main.py",
+            "--listen",
+            "127.0.0.1",
+            "--port",
+            "8188",
+            "--disable-auto-launch",
+            *VRAM_FLAGS[mode],
+        ]
+
+    def start_engine(self, vram_mode: str | None = None) -> dict:
         if not self.python.is_file():
             raise ValidationError("請先完成 prepare 與模型校驗")
         if not (self.comfy / "extra_model_paths.yaml").is_file():
@@ -108,16 +132,7 @@ class ColabBootstrap:
         ).strip()
         if current != self.runtime["comfyui"]["commit"]:
             raise ValidationError("引擎版本與固定清單不同")
-        command = [
-            str(self.python),
-            "main.py",
-            "--listen",
-            "127.0.0.1",
-            "--port",
-            "8188",
-            "--disable-auto-launch",
-            "--lowvram",
-        ]
+        command = self.engine_command(vram_mode)
         return self.engine.start(command, self.comfy, 8188, ComfyClient().health, timeout=60)
 
 

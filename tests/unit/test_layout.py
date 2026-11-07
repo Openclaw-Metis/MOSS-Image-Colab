@@ -69,3 +69,62 @@ def test_raw_json_and_kind_contracts():
     item["text"] = "不可混用"
     with pytest.raises(ValidationError):
         compile_layout("測試", [item], 1024, 1024)
+
+
+def test_official_node_schema_with_character_palette_and_caption_only_summary():
+    # Shape emitted by ComfyUI MOSSImageLayoutPrompt @1332fab: summary has only caption.
+    official = {
+        "summary": {"caption": "雙人旅遊海報"},
+        "items": [
+            {
+                "label": "text",
+                "caption": "標題",
+                "text": "山間慢旅",
+                "bbox": [-416, -384, -288, 384],
+            },
+            {
+                "label": "character",
+                "caption": "背包旅人",
+                "palette": ["#1e3a8a", "米白"],
+                "bbox": [-160, -400, 400, 0],
+            },
+        ],
+        "bbox_coord_space": "abs_centralized",
+        "bbox_format": "yxyx",
+    }
+    parsed = parse_layout(json.dumps(official, ensure_ascii=False), 1024, 1024)
+    assert parsed["meta"] == ["poster"]
+    assert [i["label"] for i in parsed["items"]] == ["text", "character"]
+    compiled = compile_layout(parsed["caption"], parsed["items"], 1024, 1024, parsed["meta"])
+    assert compiled["items"][1]["palette"] == ["#1e3a8a", "米白"]
+    assert [i["bbox"] for i in compiled["items"]] == [i["bbox"] for i in official["items"]]
+    # Text order the model reads: label, caption, text, palette, bbox.
+    assert list(compiled["items"][0]) == ["label", "caption", "text", "bbox"]
+    assert list(compiled["items"][1]) == ["label", "caption", "palette", "bbox"]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda v: v["items"][1].update(text="人物框不可帶字"),
+        lambda v: v["items"][1].update(palette=[]),
+        lambda v: v["items"][1].update(palette=["x" * 33]),
+        lambda v: v["summary"].update(canvas="grid"),
+        lambda v: v["summary"].pop("caption"),
+        lambda v: v["summary"].update(meta="poster"),
+        lambda v: v["items"][0].update(label="logo"),
+    ],
+)
+def test_official_schema_rejects_invalid_fields(mutation):
+    value = {
+        "summary": {"caption": "測試", "meta": ["poster"]},
+        "items": [
+            {"label": "text", "caption": "標題", "text": "字", "bbox": [-100, -100, 0, 0]},
+            {"label": "character", "caption": "人", "palette": ["紅"], "bbox": [0, 0, 100, 100]},
+        ],
+        "bbox_coord_space": "abs_centralized",
+        "bbox_format": "yxyx",
+    }
+    mutation(value)
+    with pytest.raises(ValidationError):
+        parse_layout(value, 1024, 1024)

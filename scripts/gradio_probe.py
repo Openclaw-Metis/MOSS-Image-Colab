@@ -36,7 +36,7 @@ def api(path, payload=None):
 
 
 def generate(task, prompt, editor):
-    graphs = json.loads((ROOT / "probe-graphs.json").read_text())
+    graphs = json.loads((ROOT / "probe-graphs.json").read_text(encoding="utf-8"))
     graph = graphs[task]
     graph["4"]["inputs"]["text" if task == "text" else "prompt"] = prompt
     if task != "text":

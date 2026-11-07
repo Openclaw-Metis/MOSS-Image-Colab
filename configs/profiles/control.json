@@ -1,0 +1,23 @@
+{
+  "id": "control_v1",
+  "version": 1,
+  "label": "色彩／深度控制",
+  "task_family": "control",
+  "source": "Comfy-Org workflow_templates image_moss_image_color_depth_control: 25 steps, cfg 3, er_sde/simple, shift 5, TSR 0.95/1, SLG single 24 over 0-1, control LoRA 1.0, MOSSImageControl strength 1 end 0.6, MoGe 3 (resolution 9, refine 3). Deviation: KSampler er_sde (template uses SamplerCustom with s_noise 1.05).",
+  "steps": 25,
+  "cfg": 3.0,
+  "sampler": "er_sde",
+  "scheduler": "simple",
+  "shift": 5.0,
+  "tsr": {"tsr_k": 0.95, "tsr_sigma": 1.0},
+  "slg": {"double_layers": "", "single_layers": "24", "start_percent": 0.0, "end_percent": 1.0},
+  "lora_stack": [{"artifact_id": "color_depth", "strength": 1.0}],
+  "allowed_models": ["sft_bf16"],
+  "negative_prompt": true,
+  "default_negative_prompt": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact",
+  "working_megapixels": 1.0,
+  "strength": {"default": 1.0, "min": 0.0, "max": 2.0},
+  "end_percent": {"default": 0.6, "min": 0.05, "max": 1.0},
+  "geometry": ["mask", "depth", "upload"],
+  "state": "probing"
+}

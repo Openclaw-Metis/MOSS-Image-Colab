@@ -93,7 +93,11 @@ def test_symlink_not_read_or_used_as_directory(tmp_path):
     project = store.create("安全路徑")
     path = store.root / f"{project['id']}.json"
     path.unlink()
-    path.symlink_to(outside)
+    try:
+        path.symlink_to(outside)
+    except OSError:
+        # Windows without Developer Mode cannot create symlinks; the Linux run covers this.
+        pytest.skip("此平台不允許建立符號連結")
     with pytest.raises(OSError):
         store.get(project["id"])
     link = tmp_path / "linked-root"

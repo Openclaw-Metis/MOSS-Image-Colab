@@ -1,0 +1,20 @@
+{
+  "id": "upscale_v1",
+  "version": 1,
+  "label": "高解析分段放大",
+  "task_family": "upscale",
+  "source": "ComfyUI MOSS-Image docs 'Going above 2 MP': decode → Upscale Image (pixel space) → VAE Encode → re-sample at denoise ≈0.6 per 1.5× step; repeat instead of one big jump. Sampler settings are a product decision (quality50 at 30 steps).",
+  "steps": 30,
+  "cfg": 3.0,
+  "sampler": "euler",
+  "scheduler": "simple",
+  "shift": 5.0,
+  "slg": {"double_layers": "", "single_layers": "22", "start_percent": 0.0, "end_percent": 0.5},
+  "lora_stack": [],
+  "allowed_models": ["sft_bf16", "base_bf16"],
+  "negative_prompt": true,
+  "default_negative_prompt": "",
+  "max_scale_per_pass": 1.5,
+  "denoise": {"default": 0.6, "min": 0.2, "max": 0.8},
+  "state": "probing"
+}

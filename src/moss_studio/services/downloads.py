@@ -18,8 +18,17 @@ from pathlib import Path, PurePosixPath
 from moss_studio.domain.contracts import ValidationError
 from moss_studio.storage.atomic import file_lock, private_dir
 
-APPROVED_REPOS = {"Comfy-Org/MOSS-Image", "Comfy-Org/MoGe"}
+APPROVED_REPOS = {
+    "Comfy-Org/MOSS-Image",
+    "Comfy-Org/MoGe",
+    "lodestones/MOSS-Image-SFT-8-steps-dmd",
+}
 ROLES = {"diffusion_models", "text_encoders", "vae", "loras", "geometry_estimation"}
+
+
+def source_path(artifact: dict) -> str:
+    """Path inside the HF repo. Defaults to the local relative filename (Comfy-Org layout)."""
+    return artifact.get("source_path", artifact["filename"])
 
 
 def validate_download(artifact: dict) -> None:
@@ -47,6 +56,18 @@ def validate_download(artifact: dict) -> None:
         or path.suffix != ".safetensors"
     ):
         raise ValidationError("只接受標準模型資料夾中的 safetensors")
+    if "source_path" in artifact:
+        remote = artifact["source_path"]
+        remote_path = PurePosixPath(remote) if isinstance(remote, str) else None
+        if (
+            remote_path is None
+            or "\\" in remote
+            or remote_path.is_absolute()
+            or ".." in remote_path.parts
+            or not 1 <= len(remote_path.parts) <= 3
+            or remote_path.suffix != ".safetensors"
+        ):
+            raise ValidationError("來源路徑必須是 repo 內的 safetensors")
     size = artifact.get("size_bytes")
     if type(size) is not int or not 8 < size <= 40 * 1024**3:
         raise ValidationError("模型大小未鎖定或超過限制")
@@ -145,7 +166,7 @@ def _hf_fetch(artifact: dict, staging: Path) -> Path:
     return Path(
         hf_hub_download(
             repo_id=artifact["repo"],
-            filename=artifact["filename"],
+            filename=source_path(artifact),
             revision=artifact["revision"],
             local_dir=staging,
             token=False,
@@ -172,7 +193,8 @@ def download_locked(artifact: dict, root: Path, *, fetch=None) -> Path:
         if source.is_symlink() or not source.resolve().is_relative_to(staging.resolve()):
             raise ValidationError("下載回傳非預期路徑")
         verify_artifact(source, artifact)
-        with source.open("rb") as stream:
+        # Read-write handle: Windows rejects fsync on read-only descriptors (EBADF).
+        with source.open("r+b") as stream:
             os.fsync(stream.fileno())
         os.replace(source, destination)
         return destination

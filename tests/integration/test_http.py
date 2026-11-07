@@ -114,9 +114,7 @@ def test_seed_precision_project_conflict_and_saved_asset_auth(http_studio, job_s
     assert submitted.status_code == 200, submitted.text
     job = submitted.json()
     assert job["seed"] == str(2**63 - 1)
-    recovered = client.get(
-        f"/api/jobs/request/{project['id']}/{job_spec['client_request_id']}"
-    )
+    recovered = client.get(f"/api/jobs/request/{project['id']}/{job_spec['client_request_id']}")
     assert recovered.status_code == 200
     assert recovered.json()["id"] == job["id"]
     # Losing the POST response must not force another inference submission.
@@ -145,3 +143,38 @@ def test_seed_precision_project_conflict_and_saved_asset_auth(http_studio, job_s
     client.cookies.clear()
     assert client.get(asset_url).status_code == 401
     assert service.ledger.get(job["id"])["snapshot"]["seed"] == 2**63 - 1
+
+
+def test_raw_upload_needs_csrf_caps_size_and_returns_edit_size(http_studio):
+    client, _ = http_studio
+    headers = authenticate(client)
+    project = client.post("/api/projects", json={"name": "upload"}, headers=headers).json()
+    buffer = io.BytesIO()
+    Image.new("RGB", (1920, 1080), "white").save(buffer, format="JPEG")
+    url = f"/api/projects/{project['id']}/assets?kind=input"
+    image = {"Content-Type": "image/jpeg"}
+    assert client.post(url, content=buffer.getvalue(), headers=image).status_code == 403
+    uploaded = client.post(url, content=buffer.getvalue(), headers={**headers, **image})
+    assert uploaded.status_code == 200, uploaded.text
+    body = uploaded.json()
+    assert body["mime"] == "image/png" and body["edit_size"] == [1360, 768]
+    assert "filename" not in body
+    assert client.get(f"/api/projects/{project['id']}").json()["asset_ids"] == [body["id"]]
+    too_big = client.post(url, content=b"0" * (20 * 1024**2 + 1), headers={**headers, **image})
+    assert too_big.status_code == 413
+    junk = client.post(url, content=b"not an image", headers={**headers, **image})
+    assert junk.status_code == 422
+    draft = client.put(
+        f"/api/projects/{project['id']}/draft",
+        json={"tab": "edit", "expected_revision": body["project_revision"], "draft": {"x": 1}},
+        headers=headers,
+    )
+    assert draft.status_code == 200
+    saved = client.get(f"/api/projects/{project['id']}").json()
+    assert saved["drafts"]["edit"] == {"x": 1} and saved["drafts"]["t2i"] == {}
+    bad_tab = client.put(
+        f"/api/projects/{project['id']}/draft",
+        json={"tab": "../x", "expected_revision": draft.json()["revision"], "draft": {}},
+        headers=headers,
+    )
+    assert bad_tab.status_code == 422

@@ -1,0 +1,20 @@
+{
+  "id": "vision_v1",
+  "version": 1,
+  "label": "視覺參考（實驗）",
+  "task_family": "vision",
+  "experimental": true,
+  "source": "Native TextEncodeMOSSImageEdit without VAE: each reference is downscaled to ≤384² and prefixed with 'Picture N:' for the Qwen3.5 vision tower. MOSS-Image has no trained image input; effect is unverified (spec v1.3 C1).",
+  "steps": 50,
+  "cfg": 3.0,
+  "sampler": "euler",
+  "scheduler": "simple",
+  "shift": 5.0,
+  "slg": {"double_layers": "", "single_layers": "22", "start_percent": 0.0, "end_percent": 0.5},
+  "lora_stack": [],
+  "allowed_models": ["sft_bf16", "base_bf16"],
+  "negative_prompt": true,
+  "default_negative_prompt": "",
+  "image_strength": {"default": 1.0, "min": 0.0, "max": 4.0},
+  "state": "probing"
+}

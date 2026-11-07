@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "purpose": "AC-19 繁中排版可行性。案例與評分標準在執行模型前固定；不得跑完後挑圖或改標準。",
+  "profile_id": "quality50_v1",
+  "scoring": {
+    "success": "所有 text 框的文字逐字正確（繁體字形，不可為簡體或錯字），且主標題位於其框的大致範圍內",
+    "fields": ["title_exact", "all_text_exact", "title_region_ok", "features_met", "notes"],
+    "decision": "成功 ≥8/10：繁中海報列為已驗證用途；否則 README 與文生圖分頁明示限制並交使用者決定"
+  },
+  "cases": [
+    {
+      "id": "zh01-mountain-travel",
+      "seed": 61001,
+      "width": 1024,
+      "height": 1024,
+      "caption": "米白色背景的極簡旅遊海報，上方深藍色大標題，下半部是藍色山脈插畫",
+      "items": [
+        {"label": "text", "caption": "置中的深藍色粗體大標題", "text": "山間慢旅", "normalized_bbox": [0.12, 0.08, 0.88, 0.22]},
+        {"label": "object", "caption": "扁平風格的藍色山脈與小樹插畫", "normalized_bbox": [0.05, 0.35, 0.95, 0.95]}
+      ],
+      "features": ["米白背景", "藍色山脈插畫", "標題在上方"]
+    },
+    {
+      "id": "zh02-railway-festival",
+      "seed": 61002,
+      "width": 1024,
+      "height": 1536,
+      "caption": "復古風格的鐵道節直式海報，紅色標題與白色副標，畫面中央是一列駛過鄉間的老式火車",
+      "items": [
+        {"label": "text", "caption": "紅色粗體主標題", "text": "臺灣鐵道節", "normalized_bbox": [0.1, 0.06, 0.9, 0.18]},
+        {"label": "text", "caption": "白色細體副標", "text": "全臺車站同步展出", "normalized_bbox": [0.15, 0.2, 0.85, 0.26]},
+        {"label": "object", "caption": "老式藍色火車駛過稻田", "normalized_bbox": [0.05, 0.35, 0.95, 0.9]}
+      ],
+      "features": ["老式火車", "稻田或鄉間", "復古配色"]
+    },
+    {
+      "id": "zh03-lantern-temple",
+      "seed": 61003,
+      "width": 1024,
+      "height": 1024,
+      "caption": "夜晚寺廟廣場的燈會海報，金色標題，滿天紅色燈籠",
+      "items": [
+        {"label": "text", "caption": "金色書法感標題", "text": "龍山寺燈會", "normalized_bbox": [0.1, 0.06, 0.9, 0.2]},
+        {"label": "object", "caption": "傳統寺廟屋簷與成排紅燈籠", "normalized_bbox": [0.04, 0.3, 0.96, 0.96]}
+      ],
+      "features": ["夜景", "紅燈籠", "寺廟屋簷"]
+    },
+    {
+      "id": "zh04-beef-noodle",
+      "seed": 61004,
+      "width": 1536,
+      "height": 1024,
+      "caption": "橫式美食活動海報，左側黑色標題，右側一碗熱騰騰的紅燒牛肉麵",
+      "items": [
+        {"label": "text", "caption": "黑色粗體標題", "text": "牛肉麵節", "normalized_bbox": [0.05, 0.12, 0.48, 0.34]},
+        {"label": "text", "caption": "小字活動日期", "text": "十一月週末限定", "normalized_bbox": [0.05, 0.38, 0.45, 0.46]},
+        {"label": "object", "caption": "冒著熱氣的紅燒牛肉麵特寫", "normalized_bbox": [0.5, 0.1, 0.96, 0.92]}
+      ],
+      "features": ["一碗牛肉麵", "熱氣", "左文右圖"]
+    },
+    {
+      "id": "zh05-reading-harvest",
+      "seed": 61005,
+      "width": 1024,
+      "height": 1024,
+      "caption": "溫暖色調的圖書館閱讀活動海報，人物坐著看書",
+      "items": [
+        {"label": "text", "caption": "橘棕色圓體標題", "text": "閱讀豐收季", "normalized_bbox": [0.12, 0.06, 0.88, 0.2]},
+        {"label": "character", "caption": "坐在扶手椅上看書的年輕人", "normalized_bbox": [0.28, 0.32, 0.72, 0.96]}
+      ],
+      "features": ["人物在看書", "書架或圖書館", "暖色調"]
+    },
+    {
+      "id": "zh06-art-weekend",
+      "seed": 61006,
+      "width": 1024,
+      "height": 1536,
+      "caption": "現代美術館展覽直式海報，白色牆面上掛著三幅抽象畫",
+      "items": [
+        {"label": "text", "caption": "黑色極簡無襯線標題", "text": "藝術週末", "normalized_bbox": [0.1, 0.05, 0.9, 0.16]},
+        {"label": "object", "caption": "白牆上的三幅彩色抽象畫", "normalized_bbox": [0.06, 0.28, 0.94, 0.85]},
+        {"label": "text", "caption": "底部小字地點", "text": "臺北市立美術館", "normalized_bbox": [0.2, 0.88, 0.8, 0.94]}
+      ],
+      "features": ["展覽空間", "三幅畫", "極簡排版"]
+    },
+    {
+      "id": "zh07-typhoon-notice",
+      "seed": 61007,
+      "width": 1024,
+      "height": 1536,
+      "caption": "政府防災宣導直式海報，深藍底色，白色標題與兩條黃色提醒文字，下方有雨傘與手電筒圖示",
+      "items": [
+        {"label": "text", "caption": "白色粗體標題", "text": "颱風防災須知", "normalized_bbox": [0.08, 0.06, 0.92, 0.17]},
+        {"label": "text", "caption": "黃色提醒文字第一條", "text": "備妥手電筒與飲水", "normalized_bbox": [0.12, 0.24, 0.88, 0.31]},
+        {"label": "text", "caption": "黃色提醒文字第二條", "text": "遠離海邊與河川", "normalized_bbox": [0.12, 0.34, 0.88, 0.41]},
+        {"label": "object", "caption": "扁平風格的雨傘與手電筒圖示", "normalized_bbox": [0.15, 0.5, 0.85, 0.92]}
+      ],
+      "features": ["深藍底色", "雨傘圖示", "手電筒圖示"]
+    },
+    {
+      "id": "zh08-night-market",
+      "seed": 61008,
+      "width": 1536,
+      "height": 1024,
+      "caption": "熱鬧夜市的橫式插畫海報，霓虹招牌與小吃攤，上方黃色標題",
+      "items": [
+        {"label": "text", "caption": "霓虹黃色標題", "text": "夜市美食地圖", "normalized_bbox": [0.2, 0.05, 0.8, 0.2]},
+        {"label": "object", "caption": "成排小吃攤與霓虹燈招牌", "normalized_bbox": [0.03, 0.26, 0.97, 0.97]}
+      ],
+      "features": ["夜景", "小吃攤", "霓虹燈"]
+    },
+    {
+      "id": "zh09-tulip-show",
+      "seed": 61009,
+      "width": 1024,
+      "height": 1024,
+      "caption": "春天花展海報，淡粉色背景，大片紅黃色鬱金香，上方綠色標題",
+      "items": [
+        {"label": "text", "caption": "深綠色優雅襯線標題", "text": "鬱金香花展", "normalized_bbox": [0.12, 0.06, 0.88, 0.2]},
+        {"label": "object", "caption": "大片紅色與黃色鬱金香花田", "normalized_bbox": [0.03, 0.3, 0.97, 0.97]}
+      ],
+      "features": ["鬱金香", "淡粉背景", "花田"]
+    },
+    {
+      "id": "zh10-ocean-concert",
+      "seed": 61010,
+      "width": 1024,
+      "height": 1536,
+      "caption": "海邊音樂會直式海報，夕陽海面，舞台上一位抱著吉他的歌手",
+      "items": [
+        {"label": "text", "caption": "白色手寫感標題", "text": "聽見海洋", "normalized_bbox": [0.12, 0.05, 0.88, 0.16]},
+        {"label": "character", "caption": "抱著木吉他唱歌的歌手", "normalized_bbox": [0.3, 0.38, 0.7, 0.92]},
+        {"label": "text", "caption": "底部白色小字", "text": "七月十八日 墾丁", "normalized_bbox": [0.25, 0.94, 0.75, 0.98]}
+      ],
+      "features": ["夕陽海面", "歌手抱吉他", "舞台"]
+    }
+  ]
+}

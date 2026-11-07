@@ -17,7 +17,7 @@ def main() -> int:
         report = inspect_runtime(args.root)
         report["blockers"] = l4_preflight(report)
     else:
-        models = json.loads((args.root / "configs/models.lock.json").read_text())
+        models = json.loads((args.root / "configs/models.lock.json").read_text(encoding="utf-8"))
         report = {
             "artifacts": [
                 {"id": artifact["id"], "gaps": artifact_gaps(artifact)}

@@ -40,3 +40,20 @@
 剩餘實測遭瀏覽器自動審核系統阻擋（usage limit）；沒有繞過限制。
 完成條件仍待：排版最終結果／保存／下載，以及完整五筆正式 GPU 基準。
 最新 request-id 找回端點及前端 pending request 去重僅通過本地驗證，仍須同步 Colab 重測。
+
+## v1.3 收尾（2026-11-07，Claude Code）
+
+狀態：**程式完成；GPU 批次 A 未執行，不標 PASS。**
+
+新增：排版接受官方 `MOSSImageLayoutPrompt` 格式（`character` 標籤、`palette`、`summary` 只有 caption），
+輸出欄位順序改為官方的 label、caption、text、palette、bbox；Notebook 改為啟動正式 app，
+並提供「GPU 批次 A」儲存格（AC-04 基準＋AC-19 繁中 10 例，結果打包下載）；
+`tests/fixtures/zh_tw_layouts.json` 在跑模型前固定 10 個繁中案例與評分標準；
+`scripts/dev_server.py` 假引擎開發伺服器（佔位圖標明非模型輸出）。
+
+驗證（Windows 11、Python 3.13.15）：189 passed、7 skipped（GPU 與 Linux 專屬）；ruff 通過；
+`node --check` 檢查全部前端模組。假引擎瀏覽器實測：登入、人物框與配色、排版 JSON、提交、
+50/50 步進度、結果與下載連結、重啟伺服器後找回草稿與作品；AC-19 腳本對假引擎完整跑 10 例且重跑不重送。
+以上不代表 GPU、畫質或通道通過。
+
+GPU 批次 A 待辦：AC-04 五筆、排版作品下載、AC-19 10 例（人工評分 scoring.json）。

@@ -1,0 +1,17 @@
+{
+  "id": "fast8_v1",
+  "version": 1,
+  "label": "加速 8 步",
+  "task_family": "t2i",
+  "source": "lodestones/MOSS-Image-SFT-8-steps-dmd Space app.py: lora_latest 0.7, release scheduler shift 5, 8 Euler steps, no CFG",
+  "steps": 8,
+  "cfg": 1.0,
+  "sampler": "euler",
+  "scheduler": "simple",
+  "shift": 5.0,
+  "slg": null,
+  "lora_stack": [{"artifact_id": "dmd8_lora", "strength": 0.7}],
+  "allowed_models": ["sft_bf16"],
+  "negative_prompt": false,
+  "state": "probing"
+}

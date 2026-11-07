@@ -8,10 +8,15 @@ const S={project:null,form:null,csrf:null,saving:Promise.resolve(),timer:null,ac
   conflict:false,submitting:false,pollToken:0,lastSeq:0,dirty:false,hasResult:false,view:"result",pending:null};
 const active=()=>S.active&&!['succeeded','failed','cancelled','interrupted'].includes(S.active.status);
 const message=(text)=>{$("moss-status").textContent=text;};
-const defaults=["","",1024,1024,"",false];
+const defaults=["","",1024,1024,"",false,"quality50_v1"];
+const profileOf=(id)=>(S.session?.profiles||[]).find(p=>p.id===id);
+function showProfile(id){const p=profileOf(id);if(!p)return;
+  $("moss-profile-summary").textContent=p.negative_prompt
+    ?`SFT bf16 · ${p.steps} 步 Euler · CFG ${p.cfg} · SLG 22 · 開發驗證中`
+    :`SFT bf16 · ${p.steps} 步 · DMD 加速 LoRA · 不使用 CFG 與負向提示詞 · 尚未通過 GPU 驗收`;}
 async function request(url,options={}){
   const headers={...(options.headers||{})};
-  if(options.body!==undefined){headers["Content-Type"]="application/json";options.body=JSON.stringify(options.body);}
+  if(options.body!==undefined&&!(options.body instanceof Blob)){headers["Content-Type"]="application/json";options.body=JSON.stringify(options.body);}
   if(options.method&&options.method!=="GET")headers["X-Moss-CSRF"]=S.csrf;
   const response=await fetch(url,{...options,headers,credentials:"same-origin"});
   let result;try{result=await response.json();}catch{throw Error("連線回應不完整，請先找回原工作");}
@@ -20,9 +25,9 @@ async function request(url,options={}){
     error.status=response.status;throw error;}
   return result;
 }
-function capture(){const [prompt,negative,width,height,seed,layout]=S.form||defaults;
-  return {prompt,negative,width:S.canvas.width,height:S.canvas.height,seed,layout_enabled:layout,layout_items:S.canvas.items,
-    layout_caption:S.canvas.captionOverride||null};}
+function capture(){const [prompt,negative,width,height,seed,layout,profile]=S.form||defaults;
+  return {prompt,negative,width:S.canvas.width,height:S.canvas.height,seed,layout_enabled:layout,profile_id:profile,layout_items:S.canvas.items,
+    layout_caption:S.canvas.captionOverride||null,layout_meta:S.canvas.meta||null};}
 async function save(){if(S.conflict)throw Error("專案版本衝突，請重新載入或另存草稿");
   const draft=JSON.parse(JSON.stringify(capture()));
   const projectId=S.project.id;
@@ -50,7 +55,7 @@ function setForm(values){const old=S.form;S.form=values;
   if(!old)S.canvas.setSize(Number(values[2]),Number(values[3]));
   $("moss-confirm-size").hidden=S.canvas.width===Number(values[2])&&S.canvas.height===Number(values[3]);
   if(!old||old[5]!==values[5])S.view=values[5]?"layout":"result";
-  showView(S.view);
+  showView(S.view);showProfile(values[6]);
 }
 function showView(view){S.view=view;const layout=!!S.form?.[5];
   $("layout-workbench").style.display=layout&&view==="layout"?"block":"none";
@@ -58,8 +63,11 @@ function showView(view){S.view=view;const layout=!!S.form?.[5];
   $("moss-view-controls").style.display=layout?"block":"none";
   $("moss-view-result").disabled=!S.hasResult;}
 async function loadProject(project){S.project=project;S.savedHash=project.draft_hash;S.conflict=false;
-  const d=project.drafts.t2i;const values=[d.prompt||"",d.negative||"",d.width||1024,d.height||1024,d.seed||"",!!d.layout_enabled];
-  S.canvas.setItems(d.layout_items||[]);S.canvas.captionOverride=d.layout_caption||null;S.form=null;setForm(values);
+  const d=project.drafts.t2i;
+  const profile=profileOf(d.profile_id)?d.profile_id:S.session.profile_id;
+  const values=[d.prompt||"",d.negative||"",d.width||1024,d.height||1024,d.seed||"",!!d.layout_enabled,profile];
+  S.canvas.setItems(d.layout_items||[]);S.canvas.captionOverride=d.layout_caption||null;
+  S.canvas.meta=d.layout_meta||null;S.form=null;setForm(values);
   $("moss-project").textContent=project.name;return values;}
 async function poll(id){const token=++S.pollToken;S.lastSeq=0;
   while(token===S.pollToken){
@@ -85,15 +93,41 @@ async function poll(id){const token=++S.pollToken;S.lastSeq=0;
       await new Promise(resolve=>setTimeout(resolve,3000));}
   }
 }
+// Project menu lives in a lazily rendered accordion, so it is bound by delegation.
+async function fillProjectList(){const list=$("project-list");if(!list)return;
+  const projects=await request("/api/projects");list.replaceChildren();
+  for(const p of projects){const o=document.createElement("option");o.value=p.id;
+    o.textContent=`${p.name}${p.id===S.project?.id?"（目前）":""} · ${p.updated_at.slice(0,16).replace("T"," ")}`;list.append(o);}
+  list.value=S.project?.id||"";}
+async function switchTo(id,note){
+  if(active()||S.pending){$("project-menu-status").textContent="請先等目前工作完成或取消，再切換專案";return;}
+  clearTimeout(S.timer);await save().catch(()=>{});
+  localStorage.setItem("moss_studio_project",id);
+  for(const key of ["moss_studio_job","moss_edit_job","moss_inpaint_job","moss_control_job"])localStorage.removeItem(key);
+  $("project-menu-status").textContent=note;location.reload();}
+function bindProjectMenu(){
+  document.addEventListener("focusin",(e)=>{if(e.target.id==="project-list")fillProjectList().catch(err=>message(err.message));});
+  document.addEventListener("click",(e)=>{
+    if(e.target.id==="project-export"&&S.project)e.target.href=`/api/projects/${S.project.id}/export`;
+    if(e.target.id==="project-open"){const id=$("project-list").value;
+      if(id&&id!==S.project.id)switchTo(id,"正在開啟專案…");}});
+  document.addEventListener("change",async(e)=>{if(e.target.id!=="project-import")return;
+    const file=e.target.files[0];e.target.value="";if(!file)return;
+    if(file.size>1024**3){$("project-menu-status").textContent="專案檔超過 1 GiB";return;}
+    try{$("project-menu-status").textContent="正在驗證並匯入專案…";
+      const project=await request("/api/projects/import",{method:"POST",body:file,headers:{"Content-Type":"application/zip"}});
+      await switchTo(project.id,`已匯入「${project.name}」，正在開啟…`);
+    }catch(error){$("project-menu-status").textContent="匯入失敗："+error.message+"；現有專案未受影響";}});}
 window.mossStudio={
-  async init(){const session=await request("/api/session");S.csrf=session.csrf;S.session=session;
+  async init(){const session=await request("/api/session");S.csrf=session.csrf;S.session=session;bindProjectMenu();
     $("moss-edit-layout").onclick=()=>showView("layout");
     $("moss-view-result").onclick=()=>showView("result");
     $("moss-confirm-size").onclick=()=>{S.canvas.setSize(Number(S.form[2]),Number(S.form[3]));
       $("moss-confirm-size").hidden=true;scheduleSave();};
     S.canvas=new LayoutCanvas(request,scheduleSave,()=>S.form?.[0]||"");
     const runtime=await request("/api/runtime");const gpu=runtime.gpus[0];
-    $("moss-runtime").textContent=`${gpu?gpu.name:"未偵測到 GPU"} · 系統 RAM ${(runtime.ram_total_bytes/1024**3).toFixed(1)} GiB · 開發驗證中`;
+    const ram=Number.isFinite(runtime.ram_total_bytes)?`${(runtime.ram_total_bytes/1024**3).toFixed(1)} GiB`:"未知";
+    $("moss-runtime").textContent=`${gpu?gpu.name:"未偵測到 GPU"} · 系統 RAM ${ram} · 開發驗證中`;
     let project;const id=localStorage.getItem("moss_studio_project");
     if(id)project=await request("/api/projects/"+encodeURIComponent(id));
     else{project=await request("/api/projects",{method:"POST",body:{name:"未命名創作"}});localStorage.setItem("moss_studio_project",project.id);}
@@ -113,9 +147,11 @@ window.mossStudio={
       if(!payload){setForm(values);
       if(!$("moss-confirm-size").hidden)throw Error("請先確認尺寸變更，再產生圖片");
       clearTimeout(S.timer);await save();
-      const [prompt,negative,width,height,seed,layout]=values;
+      const [prompt,negative,width,height,seed,layout,profile]=values;
+      if(profileOf(profile)&&!profileOf(profile).negative_prompt&&negative.trim())
+        throw Error("加速 8 步不使用負向提示詞；請清空進階設定中的負向提示詞，或改用精細 50 步");
       payload={project_id:S.project.id,client_request_id:crypto.randomUUID(),project_revision:S.project.revision,
-        task:layout?"layout":"t2i",profile_id:S.session.profile_id,model_artifact_id:S.session.model_artifact_id,
+        task:layout?"layout":"t2i",profile_id:profile,model_artifact_id:S.session.model_artifact_id,
         prompt,negative_prompt:negative,width:Number(width),height:Number(height),seed:seed.trim()||null,
         references:[],layout:layout?S.canvas.json():null,mask_asset_id:null,control:null,lora_stack:[]};
       S.pending=payload;localStorage.setItem("moss_studio_pending",JSON.stringify(payload));}

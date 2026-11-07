@@ -97,6 +97,39 @@
       "role": "control_lora",
       "dtype": "checkpoint",
       "provider_declared_license": "apache-2.0"
+    },
+    {
+      "provider": "huggingface",
+      "repo": "lodestones/MOSS-Image-SFT-8-steps-dmd",
+      "revision": "f95df83b5e90ae91ea412434b3f9b7f1c8c6314f",
+      "license_url": "https://huggingface.co/lodestones/MOSS-Image-SFT-8-steps-dmd/blob/f95df83b5e90ae91ea412434b3f9b7f1c8c6314f/README.md",
+      "base_family": "moss_image",
+      "supported_tasks": [],
+      "tested_workflow_hash": null,
+      "id": "dmd8_lora",
+      "source_path": "lora_latest.safetensors",
+      "filename": "loras/moss_image_sft_dmd8_lora_latest_f95df83.safetensors",
+      "size_bytes": 1189176800,
+      "sha256": "be82ab2bef78194651815bb6de443cec67553e01c14559f2ad365449445f0452",
+      "role": "speed_lora",
+      "dtype": "fp32",
+      "provider_declared_license": "apache-2.0"
+    },
+    {
+      "provider": "huggingface",
+      "repo": "Comfy-Org/MoGe",
+      "revision": "1484985258ba7ef45c314144fcf0e90924ffbf44",
+      "license_url": "https://huggingface.co/Comfy-Org/MoGe/blob/1484985258ba7ef45c314144fcf0e90924ffbf44/LICENSE",
+      "base_family": "moge",
+      "supported_tasks": [],
+      "tested_workflow_hash": null,
+      "id": "moge3_vitg",
+      "filename": "geometry_estimation/moge_3_vitg_fp16.safetensors",
+      "size_bytes": 2501605198,
+      "sha256": "a587e42936ae7080b419df4c047b0f0b075d3492418f76ce81fb0779925a1fe6",
+      "role": "geometry_estimator",
+      "dtype": "fp16",
+      "provider_declared_license": "mit"
     }
   ]
 }

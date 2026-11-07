@@ -5,7 +5,33 @@ import os
 from pathlib import Path
 
 import gradio as gr
+
+from moss_studio.ui.control_component import CONTROL_HTML
+from moss_studio.ui.edit_component import EDIT_HTML
+from moss_studio.ui.inpaint_component import INPAINT_HTML
 from moss_studio.ui.layout_component import LAYOUT_HTML
+from moss_studio.ui.models_component import MODELS_HTML
+
+PROJECT_MENU_HTML = """
+<div id="project-menu" style="display:flex;flex-direction:column;gap:8px">
+ <label>開啟其他專案 <select id="project-list"><option value="">（載入中）</option></select></label>
+ <button id="project-open" type="button">開啟選取的專案</button>
+ <a id="project-export" download>匯出目前專案（ZIP，可在新的 Colab 續編）</a>
+ <label>匯入專案 ZIP <input id="project-import" type="file" accept=".zip,application/zip"></label>
+ <p id="project-menu-status" role="status" style="color:#475569">
+  專案檔含素材、遮罩、排版與作品；不含模型與密碼。匯入會建立新專案，不覆蓋現有專案。</p>
+</div>
+"""
+
+
+def tab_loader(service, module: str, handle: str) -> str:
+    """Client-only select hook: lazy-import the tab module, then (re)bind it to the DOM."""
+    version = hashlib.sha256(
+        (service.repository / "src/moss_studio/ui/static" / module).read_bytes()
+    ).hexdigest()[:12]
+    return (
+        f"async()=>{{await import('/static/{module}?v={version}');await window.{handle}.init();}}"
+    )
 
 
 def build_ui(service):
@@ -40,7 +66,12 @@ def build_ui(service):
                             '<button id="moss-confirm-size" type="button" hidden>'
                             "確認尺寸變更（框選位置依比例重算）</button>"
                         )
-                        gr.Markdown("SFT bf16 · 50 步 Euler · CFG 3 · SLG 22 · 開發驗證中")
+                        profile = gr.Radio(
+                            choices=[("精細 50 步", "quality50_v1"), ("加速 8 步", "fast8_v1")],
+                            value="quality50_v1",
+                            label="繪製方式",
+                        )
+                        gr.HTML('<p id="moss-profile-summary">SFT bf16 · 開發驗證中</p>')
                         with gr.Accordion("進階設定", open=False):
                             negative = gr.Textbox(label="負向提示詞", value="")
                             seed = gr.Textbox(label="種子（留空自動產生）", value="")
@@ -51,6 +82,7 @@ def build_ui(service):
                         cancel = gr.Button("取消目前工作")
                         with gr.Accordion("專案", open=False):
                             new_project = gr.Button("新建創作")
+                            gr.HTML(PROJECT_MENU_HTML)
                     with gr.Column(scale=7):
                         gr.HTML(
                             '<p id="moss-status" role="status">'
@@ -72,15 +104,19 @@ def build_ui(service):
                             '<p><a id="moss-download" hidden download>下載圖片</a>　'
                             '<a id="moss-works" hidden download>打包作品 ZIP</a></p></section>'
                         )
-            for name, stage in [
-                ("多圖指令修圖", 4),
-                ("筆刷局部重繪", 5),
-                ("視覺與深度控制", 6),
-                ("模型與 LoRA 管理", 7),
-            ]:
-                with gr.Tab(name):
-                    gr.Markdown(f"此分頁尚在開發，Stage {stage} 完成實作與驗證後開放。")
-        form = [prompt, negative, width, height, seed, layout_on]
+            with gr.Tab("多圖指令修圖") as edit_tab:
+                gr.HTML(EDIT_HTML)
+            edit_tab.select(fn=None, js=tab_loader(service, "edit.js", "mossEdit"))
+            with gr.Tab("筆刷局部重繪") as inpaint_tab:
+                gr.HTML(INPAINT_HTML)
+            inpaint_tab.select(fn=None, js=tab_loader(service, "inpaint.js", "mossInpaint"))
+            with gr.Tab("視覺與深度控制") as control_tab:
+                gr.HTML(CONTROL_HTML)
+            control_tab.select(fn=None, js=tab_loader(service, "control.js", "mossControl"))
+            with gr.Tab("模型與高解析") as models_tab:
+                gr.HTML(MODELS_HTML)
+            models_tab.select(fn=None, js=tab_loader(service, "models.js", "mossModels"))
+        form = [prompt, negative, width, height, seed, layout_on, profile]
         demo.load(
             fn=None,
             outputs=form,
@@ -111,8 +147,9 @@ def main():
     parser.add_argument("--repository", type=Path, required=True)
     parser.add_argument("--data-root", type=Path, default=Path("/content/moss-studio"))
     parser.add_argument("--port", type=int, default=7860)
+    parser.add_argument("--model-root", type=Path, default=Path("/content/models"))
     args = parser.parse_args()
-    service = StudioService(args.repository, args.data_root)
+    service = StudioService(args.repository, args.data_root, model_root=args.model_root)
     app = create_http_app(service, os.environ.pop("MOSS_STUDIO_PASSWORD", ""), build_ui)
     uvicorn.run(app, host="127.0.0.1", port=args.port, access_log=False, log_level="warning")
 

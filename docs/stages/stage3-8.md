@@ -1,0 +1,25 @@
+# Stage 3～8：程式完成紀錄（規格 v1.3.0）
+
+狀態：**全部為「程式完成」，GPU 批次 B、C、D 均未執行；沒有任何一項標 PASS。**
+驗證環境：Windows 11、Python 3.13.15、Gradio 6.31.0；CPU 測試 189 passed、7 skipped；ruff 通過。
+瀏覽器檢查一律使用 `scripts/dev_server.py` 假引擎，只證明 UI 與 API 串接。
+
+| 階段 | 已實作 | CPU／假引擎證據 | 待 GPU 驗收 | 已知缺口 |
+|---|---|---|---|---|
+| 3 加速 8 步、VRAM 模式 | `fast8_v1`（DMD `lora_latest` 0.7、8 步、CFG 1、無 SLG、只限 SFT）；profile 登錄；負向詞與 fast8 衝突時拒絕而非忽略；`engine_vram_mode`（lowvram／auto／highvram） | graph 契約與切換無殘留（AC-07 CPU 部分）；瀏覽器：fast8 帶負向詞被擋、清空後 8/8 步 | 批次 B：auto 與 lowvram 對照、AC-06 | VRAM 預設仍是 lowvram，待實測再改 |
+| 4 多圖修圖 | 上傳 API（串流、20 MiB 上限、不留檔名）；Edit graph 依官方範本（30 步、CFG 4、euler/normal、SLG 22 全程、圖 1 縮 1 MP／16 px 決定尺寸）；參考圖以 UUID 名稱送入引擎；分頁草稿分開保存 | 尺寸算式與 ComfyUI `ImageScaleToTotalPixels` 一致；正負編碼器同圖同序；跨專案素材被拒；上傳失敗不封鎖 GPU；瀏覽器：空格要求確認重新編號、30/30 步、輸出跟隨圖 1 | 批次 B：AC-08 1／2／4 圖 | Edit-HQ 對照未做（選用） |
+| 5 筆刷重繪 | 自訂 Canvas（筆刷、橡皮擦、復原、清除、反轉、黑白預覽）；遮罩以工作尺寸上傳；`SetLatentNoiseMask`；有限寬度柔邊；後端合成 | 柔邊外逐像素等於原圖、遮罩方向、黑白筆、空／全白路徑；瀏覽器：空遮罩被擋、拖曳塗抹、未塗抹角落保留原色 | 批次 C：AC-09 品質 5 例 | Edit-HQ 局部修改對照未做 |
+| 6 色彩／深度、視覺參考 | Control graph 依官方範本（MoGe 3 → MoGeRender → MOSSImageControl＋控制 LoRA、TSR、SLG 24、25 步 er_sde）；自備深度圖／色塊圖（色塊最近鄰縮放）；視覺參考（實驗）走無 VAE 的原生節點 | graph 契約、參數邊界、色塊縮放後只剩原色；瀏覽器：兩個子模式都能產生 | 批次 C：AC-11、AC-10（實驗） | MoGe 估計圖預覽未做；取樣器用 KSampler `er_sde`，與範本 s_noise 1.05 有差 |
+| 7 模型管理、高解析 | 固定清單狀態與背景下載（不佔 GPU 鎖）、SFT↔Base 切換（工作中與未下載時拒絕）；分段放大（每段 ≤1.5 倍、16 px、最大 2048²） | 切換屏障、非清單來源拒絕、段數與節點串接；瀏覽器：模型表、開發伺服器拒絕真實下載、1024×1536→1360×2048 | 批次 D：AC-12、AC-13、AC-14、AC-20（實驗） | 使用者自加 HF LoRA 未實作；`capabilities.json` 尚未接到 UI |
+| 8 專案匯出入 | ZIP（manifest、project、assets）；匯入驗證檔名、符號連結、重名、壓縮比、單檔與總量、hash；一律新 id；專案選單切換／匯出／匯入 | round-trip hash 一致；7 種惡意或不一致檔案被拒且無殘留；瀏覽器：匯出→匯入→開啟新專案帶回草稿 | 批次 D：AC-15 新 VM 續編 | 工作歷史不隨專案匯入（設計如此） |
+
+## 測試穩定性
+
+全套測試曾有一次 `test_saved_result_immutable_seed_and_offline_duplicate` 失敗、單獨重跑通過。
+推測為 Windows `msvcrt.LK_LOCK` 每次重試等 1 秒，使檔案鎖競爭超過測試期限；改為非阻塞輪詢後連跑 4 次全過。
+此為推斷，Linux 路徑（flock）不受影響。
+
+## 回滾
+
+各階段可單獨停用：移除對應分頁與 profile，不影響已通過的 T2I。資料格式仍為 schema v1；
+匯出包加入 `format`／`schema_version`，舊版程式不會誤讀。
