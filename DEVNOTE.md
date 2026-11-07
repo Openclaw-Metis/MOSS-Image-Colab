@@ -40,6 +40,10 @@ Colab 的 subprocess.run 輸出不會顯示在儲存格；看批次進度要用 
 假引擎試跑模型區段要有大小相符的權重檔；可用 fsutil sparse 建稀疏佔位檔，用完要刪（.runtime/dev/models）。
 用 Python write_text 改檔在 Windows 會寫成 CRLF；本倉庫多數檔案是 LF（少數 CRLF），提交前用 git ls-files --eol 檢查。
 引擎輸入檔名必須以 moss_ 開頭（ComfyClient.upload_image 檢查）。
+假引擎（AnyNodes）接受任何節點與輸入，抓不到真引擎的 object_info 驗證問題：開跑 GPU 批次前先在 VM 執行
+scripts/engine_preflight.py（11 種圖、零上傳零排隊）。已踩過：LoadImage 的 image 列舉只含既有輸入檔（自家待上傳檔名需豁免）；
+TextEncodeMOSSImageEdit.images 是 COMFY_AUTOGROW_V3，API 以 images.image_N 攤平送出。
+Colab 終端機剛開時第一次輸入會混入 "1;2c0;276;0c" 之類回應碼，先打 clear 再下指令；點擊要落在終端機文字區內。
 Colab：ROOT=/content/moss-stage1、資料 /content/moss-studio、證據 /content/moss-evidence；勿提交私有 URL／密碼／輸出。
 上一輪（GPT）Colab 自動化曾遇瀏覽器審核額度限制，未繞過；重跑前先讀 benchmark.json，不重送。
 

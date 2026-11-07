@@ -56,7 +56,9 @@ class ProductClient:
 
     def submit(self, payload: dict) -> str:
         response = self.http.post("/api/jobs", json=payload)
-        response.raise_for_status()
+        if response.is_error:
+            # Keep the service's own reason (e.g. which node input failed) in the batch log.
+            raise RuntimeError(f"提交被拒（HTTP {response.status_code}）：{response.text[:500]}")
         return response.json()["id"]
 
     def wait(self, job_id: str, timeout: float = 1200) -> dict:
