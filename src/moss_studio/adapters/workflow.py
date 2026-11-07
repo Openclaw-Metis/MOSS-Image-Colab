@@ -64,14 +64,34 @@ def model_chain(graph: dict, profile: dict, registry: dict, extra_loras=()) -> l
     return model
 
 
+def validate_user_loras(stack, profile: dict, registry: dict) -> list[dict]:
+    """Only presets that declare `user_loras` take a stack, and only of user-added LoRAs."""
+    rules = profile.get("user_loras")
+    if not stack:
+        return []
+    if not rules:
+        raise ValidationError("E_MODEL_INCOMPATIBLE：此採樣預設不接受自加 LoRA（請改用精細 50 步）")
+    if not isinstance(stack, list) or len(stack) > rules["max"]:
+        raise ValidationError(f"自加 LoRA 最多 {rules['max']} 個")
+    seen = set()
+    for lora in stack:
+        if not isinstance(lora, dict) or set(lora) != {"artifact_id", "strength"}:
+            raise ValidationError("LoRA 設定欄位不符")
+        artifact = registry.get(lora["artifact_id"])
+        if not artifact or artifact.get("role") != "user_lora" or lora["artifact_id"] in seen:
+            raise ValidationError("E_MODEL_INCOMPATIBLE：只能疊加模型頁加入的自加 LoRA，且不可重複")
+        _bounded(lora["strength"], rules["strength"], "LoRA 強度")
+        seen.add(lora["artifact_id"])
+    return stack
+
+
 def compile_t2i(spec: dict, template: dict, profile: dict, registry: dict) -> dict:
     validate_job_spec(spec)
     if spec["task"] not in {"t2i", "layout"}:
         raise ValidationError("此編譯器只接受文生圖與排版")
-    if spec["references"] or spec["mask_asset_id"] or spec["control"] or spec["lora_stack"]:
-        raise ValidationError(
-            "E_MODEL_INCOMPATIBLE：文生圖預設不接受未驗證的參考、控制或 LoRA 疊加"
-        )
+    if spec["references"] or spec["mask_asset_id"] or spec["control"]:
+        raise ValidationError("E_MODEL_INCOMPATIBLE：文生圖預設不接受未驗證的參考或控制")
+    user_loras = validate_user_loras(spec["lora_stack"], profile, registry)
     artifact = check_profile(spec, profile, registry, "t2i")
     graph = deepcopy(template)
     graph["1"]["inputs"]["unet_name"] = Path(artifact["filename"]).name
@@ -95,7 +115,7 @@ def compile_t2i(spec: dict, template: dict, profile: dict, registry: dict) -> di
         scheduler=profile["scheduler"],
     )
     graph["9"]["inputs"]["filename_prefix"] = "moss_studio"
-    graph["7"]["inputs"]["model"] = model_chain(graph, profile, registry)
+    graph["7"]["inputs"]["model"] = model_chain(graph, profile, registry, user_loras)
     return graph
 
 

@@ -1,8 +1,12 @@
 """Release gates use evidence, never merely file existence."""
 
+import json
+from pathlib import Path
+
 from moss_studio.domain.contracts import ValidationError
 
 STATES = {"unverified", "probing", "verified", "released", "blocked", "disabled"}
+CLASSES = {"required", "experimental", "optional"}
 REQUIRED_ARTIFACT_FIELDS = {
     "id",
     "provider",
@@ -35,6 +39,17 @@ def artifact_gaps(artifact: dict) -> list[str]:
     ):
         gaps.append("size_bytes")
     return sorted(set(gaps))
+
+
+def load_capabilities(repository: Path) -> dict[str, dict]:
+    """What the UI may claim about each feature comes only from configs/capabilities.json."""
+    data = json.loads((Path(repository) / "configs/capabilities.json").read_text("utf-8"))
+    result = {}
+    for item in data["capabilities"]:
+        if item.get("state") not in STATES or item.get("class") not in CLASSES:
+            raise ValidationError(f"能力清單項目無效：{item.get('id')}")
+        result[item["id"]] = {key: item[key] for key in ("class", "state", "reason")}
+    return result
 
 
 def require_released(capability: dict) -> None:

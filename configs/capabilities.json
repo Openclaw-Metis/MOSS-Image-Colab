@@ -71,7 +71,7 @@
       "state": "unverified",
       "evidence": [],
       "workflow_hash": null,
-      "reason": "固定清單下載、SFT↔Base 切換、刪除檔案（使用中阻擋）程式完成；使用者自加 HF LoRA 未實作；GPU 批次 D（AC-13、AC-14）未執行"
+      "reason": "固定清單下載、SFT↔Base 切換、刪除檔案（使用中阻擋）、自加 HF LoRA（commit＋SHA256 鎖定，只用於 quality50）程式完成；GPU 批次 D（AC-13、AC-14）未執行；自加 LoRA 未做 GPU 實測"
     },
     {
       "id": "project_archive",

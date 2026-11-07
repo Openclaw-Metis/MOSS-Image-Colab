@@ -2,7 +2,8 @@
 2026-11-08（Claude Code）：規格 v1.3.0。Stage 0～3 PASS（main 8a6f07f）；Stage 4～8 程式完成。
 分支 batch-cd-2026.11.07：AC-19 使用者接受限制（結案）、MoGe 估計圖預覽、模型刪除（使用中阻擋）、
 修圖／重繪／視覺分頁跟隨使用中主模型、批次 C／D 自動腳本與 Notebook 第 7～9 格。批次 C、D 尚未在 GPU 執行。
-本機（Windows 11、Python 3.13.15）194 passed、7 skipped，ruff 通過。
+本機（Windows 11、Python 3.13.15）207 passed、7 skipped，ruff 通過。
+本機另完成（未推送）：各分頁的 GPU 驗收字樣改由 configs/capabilities.json 經 /api/session 提供；自加 HF LoRA。
 
 # DECISIONS
 v1.3：視覺參考降為實驗；2K 改為原生 ≤2.2 MP＋分段放大，原生 2048² 為實驗；刪 FP8 編碼器；
@@ -10,7 +11,10 @@ fast8 依作者 Space（lora_latest 0.7、8 步、CFG 1）；edit／control 依�
 GPU 驗收批次化：前一階段程式完成即可開發下一階段，PASS 需 GPU 批次證據。
 Gradio 只當外殼；新分頁都用自訂 HTML＋static/*.js（api.js 共用），不用 gr.ImageEditor（需 SSE）。
 inpaint 柔邊外逐像素保留原圖由後端合成保證；遮罩在工作尺寸繪製以限制 undo 記憶體。
-模型頁只能下載 models.lock.json 內項目；使用者自加 HF LoRA 延後。專案匯入一律新 id、不帶工作歷史。
+模型頁只能下載 models.lock.json 內項目與自加 LoRA；專案匯入一律新 id、不帶工作歷史。
+自加 HF LoRA：使用者給 repo＋40 碼 commit＋路徑，向 Hub 匿名查 paths-info 取 LFS SHA256 與大小鎖定（≤2 GiB、最多 20 個），
+存 data_root/user_loras.json（載入時重驗），檔名固定 loras/user_<sha12>.safetensors；只有宣告 user_loras 的預設（quality50）可疊加，最多 2 個、強度 0～2。
+介面上「已通過／尚未通過 GPU 驗收」一律取自 capabilities.json，不在前端寫死。
 模型刪除：使用中主模型、共用編碼器／VAE、工作進行中、下載中一律 409；工作快照自帶 model_artifact_id，伺服器不強制等於使用中主模型。
 批次 C 素材用 fast8 在同一工作階段生成再以 kind=input 上傳（無真人照片、無授權問題）；AC-09 柔邊外逐像素由腳本自動量測，其餘人工評分。
 

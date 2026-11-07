@@ -45,6 +45,7 @@ from moss_studio.domain.masks import (
     resize_mask,
 )
 from moss_studio.domain.references import scaled_to_total_pixels
+from moss_studio.services.capabilities import load_capabilities
 from moss_studio.services.models import ModelManager
 from moss_studio.storage.assets import AssetStore
 from moss_studio.storage.atomic import atomic_json, private_dir, read_json
@@ -66,6 +67,7 @@ class StudioService:
         runner=None,
         model_root: Path | None = None,
         model_fetch=None,
+        model_lookup=None,
     ):
         self.repository = Path(repository)
         self.root = private_dir(Path(data_root))
@@ -79,23 +81,24 @@ class StudioService:
         self.lock = threading.RLock()
         self.futures = {}
         self.gpu_blocked = False
-        self.registry = {
-            a["id"]: a
-            for a in json.loads(
-                (self.repository / "configs/models.lock.json").read_text(encoding="utf-8")
-            )["artifacts"]
-        }
         self.profiles = {}
         for path in sorted((self.repository / "configs/profiles").glob("*.json")):
             profile = json.loads(path.read_text(encoding="utf-8"))
             self.profiles[profile["id"]] = profile
         self.default_profile_id = "quality50_v1"
+        self.capabilities = load_capabilities(self.repository)
         self.models = ModelManager(
             self.repository,
             model_root or Path("/content/models"),
             self.root,
             fetch=model_fetch,
+            lookup=model_lookup,
         )
+
+    @property
+    def registry(self) -> dict:
+        # One registry for compilers and the model page, so user LoRAs added there are usable.
+        return self.models.registry
 
     def profile_for(self, profile_id: str) -> dict:
         profile = self.profiles.get(profile_id)
@@ -288,7 +291,11 @@ class StudioService:
         plan = {"inputs": [], "finish": None, "record": {}}
         if spec["task"] in {"t2i", "layout"}:
             template = self._template("t2i")
-            return {**plan, "graph": compile_t2i(spec, template, profile, self.registry)}
+            graph = compile_t2i(spec, template, profile, self.registry)
+            for lora in spec["lora_stack"]:  # compiled, so these are registered user LoRAs
+                if self.models.status(lora["artifact_id"])["state"] != "ready":
+                    raise ValidationError(f"請先到模型頁下載 LoRA {lora['artifact_id']}")
+            return {**plan, "graph": graph}
         if spec["task"] == "instruction_edit":
             inputs = self._reference_inputs(spec, profile)
             graph = compile_edit(

@@ -1,4 +1,4 @@
-import {request,session,currentProject,pollJob,draftSaver,TERMINAL} from "/static/api.js";
+import {request,session,currentProject,pollJob,draftSaver,TERMINAL,capabilityLabel} from "/static/api.js";
 const $=(id)=>document.getElementById(id);
 // The mask canvas lives at the working size (≈1 MP) so undo snapshots stay bounded.
 const P={project:null,source:null,mask:null,ctx:null,undo:[],mode:"brush",last:null,active:null,
@@ -133,7 +133,8 @@ async function cancel(){if(!P.active)return;
 window.mossInpaint={
   async init(){const root=$("inpaint-root");if(!root)return;
     if(P.bound===root){await followProject().catch(e=>message(e.message));place();return;}
-    P.bound=root;await session();
+    P.bound=root;const s=await session();
+    $("inpaint-summary").textContent=`${s.model_artifact_id==="base_bf16"?"Base":"SFT"} bf16 · 30 步 · 遮罩 latent 重繪＋柔邊合成 · ${capabilityLabel(s,"masked_inpaint")}`;
     P.saver=draftSaver("inpaint",{getProject:()=>P.project,capture,onState:(t)=>{$("inpaint-save-state").textContent=t;}});
     $("inpaint-file").onchange=(e)=>uploadSource(e.target.files[0]);
     $("inpaint-brush").onclick=()=>setMode("brush");$("inpaint-eraser").onclick=()=>setMode("eraser");

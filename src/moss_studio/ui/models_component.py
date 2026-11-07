@@ -12,8 +12,22 @@ MODELS_HTML = f"""
    <tbody></tbody>
   </table>
  </div>
- <p style="color:#475569;margin:0">只能下載固定版本清單中的模型；檔案會在下載完成前驗證 SHA256。
-  工作進行中不能切換主模型。</p>
+ <p style="color:#475569;margin:0">只能下載固定版本清單中的模型與你加入的 LoRA；
+  檔案會在下載完成前驗證 SHA256。工作進行中不能切換主模型或刪除檔案。</p>
+ <details><summary>加入 Hugging Face LoRA（只用於精細 50 步）</summary>
+  <p style="color:#475569">填模型庫、完整 40 碼 commit 與檔案路徑。
+   工具會向 Hugging Face 查詢並鎖定該檔的 SHA256 與大小，之後只會下載完全相同的檔案。
+   是否適用 MOSS-Image 與授權條件請自行確認。</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+   <label>模型庫 <input id="lora-repo" placeholder="擁有者/名稱" style="{_INPUT}"></label>
+   <label>Commit <input id="lora-revision" placeholder="40 碼 commit" size="42"
+    style="{_INPUT}"></label>
+   <label>檔案路徑 <input id="lora-path" placeholder="例如 lora.safetensors"
+    style="{_INPUT}"></label>
+   <button id="lora-add" type="button">查詢並加入</button>
+  </div>
+  <p id="lora-status" role="status"></p>
+ </details>
  <h3 style="margin:8px 0 0">高解析分段放大</h3>
  <p style="color:#475569;margin:0">每段最多放大 1.5 倍並重新繪製細節，最大 2048×2048。
   結果會標示為「分段放大」，不是原生 2K 生成。</p>

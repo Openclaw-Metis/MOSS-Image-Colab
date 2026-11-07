@@ -147,6 +147,7 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
                 for profile in service.profiles.values()
             ],
             "model_artifact_id": service.models.active_backbone(),
+            "capabilities": service.capabilities,
             "release_status": "development",
         }
 
@@ -203,6 +204,17 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
     def delete_model(artifact_id: str):
         with service.lock:
             return service.models.delete(artifact_id, busy=service.busy())
+
+    @app.post("/api/models/user-loras")
+    async def add_user_lora(request: Request):
+        value = await object_body(request)
+        # Network lookup of the Hub's pinned hash and size; the download is a separate step.
+        return await run_in_threadpool(
+            service.models.add_user_lora,
+            value.get("repo"),
+            value.get("revision"),
+            value.get("path"),
+        )
 
     @app.post("/api/models/activate")
     async def activate_model(request: Request):

@@ -49,7 +49,7 @@ INPAINT_HTML = f"""
   <label>種子（留空自動產生）<input id="inpaint-seed"
     style="border:1px solid #94a3b8;padding:5px"></label>
  </details>
- <p id="inpaint-summary">SFT bf16 · 30 步 · 遮罩 latent 重繪＋柔邊合成 · 尚未通過 GPU 驗收</p>
+ <p id="inpaint-summary">30 步 · 遮罩 latent 重繪＋柔邊合成</p>
  <div style="display:flex;gap:8px;flex-wrap:wrap">
   <button id="inpaint-submit" type="button" style="background:#1d4ed8;color:white;
     padding:10px 18px;border-radius:6px;border:0">開始重繪</button>

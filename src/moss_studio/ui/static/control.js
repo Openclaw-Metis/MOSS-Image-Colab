@@ -1,4 +1,4 @@
-import {request,session,currentProject,pollJob,draftSaver,TERMINAL} from "/static/api.js";
+import {request,session,currentProject,pollJob,draftSaver,TERMINAL,capabilityLabel} from "/static/api.js";
 const $=(id)=>document.getElementById(id);
 const SLOTS=["control-source","control-depth","control-color","vision-1","vision-2","vision-3","vision-4"];
 const KIND={"control-depth":"control","control-color":"control"};
@@ -23,8 +23,8 @@ function render(){
   $("vision-strength-value").textContent=Number($("vision-strength").value).toFixed(1);
   const source=C.assets["control-source"];
   $("control-summary").textContent=vision
-    ?"SFT bf16 · 50 步 · 參考圖只進視覺塔 · 實驗功能，尚未通過 GPU 驗收"
-    :`SFT bf16 · 控制 LoRA · 25 步 er_sde · ${source?`輸出 ${source.inpaint_size.join("×")}（跟隨來源圖）`:"放入來源圖後顯示輸出尺寸"} · 尚未通過 GPU 驗收`;
+    ?`50 步 · 參考圖只進視覺塔 · ${capabilityLabel(C.session,"vision_reference")}`
+    :`SFT bf16 · 控制 LoRA · 25 步 er_sde · ${source?`輸出 ${source.inpaint_size.join("×")}（跟隨來源圖）`:"放入來源圖後顯示輸出尺寸"} · ${capabilityLabel(C.session,"color_depth")}`;
 }
 
 async function loadProject(project){C.project=project;const d=project.drafts.control||{};
@@ -106,7 +106,7 @@ async function cancel(){if(!C.active)return;
 window.mossControl={
   async init(){const root=$("control-root");if(!root)return;
     if(C.bound===root){await followProject().catch(e=>message(e.message));return;}
-    C.bound=root;await session();
+    C.bound=root;C.session=await session();
     C.saver=draftSaver("control",{getProject:()=>C.project,capture,onState:(t)=>{$("control-save-state").textContent=t;}});
     for(const slot of SLOTS){$(`${slot}-file`).onchange=(e)=>upload(slot,e.target.files[0]);$(`${slot}-remove`).onclick=()=>remove(slot);}
     for(const radio of document.querySelectorAll('input[name="control-mode"]'))radio.onchange=()=>{render();C.saver.schedule();};

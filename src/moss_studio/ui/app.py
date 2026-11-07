@@ -80,7 +80,8 @@ def build_ui(service):
                             value="quality50_v1",
                             label="繪製方式",
                         )
-                        gr.HTML('<p id="moss-profile-summary">SFT bf16 · 開發驗證中</p>')
+                        gr.HTML('<p id="moss-profile-summary">SFT bf16</p>')
+                        gr.HTML('<div id="moss-lora" hidden></div>')
                         gr.HTML(ZH_TW_NOTICE)
                         with gr.Accordion("進階設定", open=False):
                             negative = gr.Textbox(label="負向提示詞", value="")

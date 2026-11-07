@@ -49,7 +49,7 @@ EDIT_HTML = f"""
   <label>種子（留空自動產生）<input id="edit-seed"
     style="border:1px solid #94a3b8;padding:5px"></label>
  </details>
- <p id="edit-summary">SFT bf16 · Edit LoRA · 30 步 · CFG 4 · 尚未通過 GPU 驗收</p>
+ <p id="edit-summary">SFT bf16 · Edit LoRA · 30 步 · CFG 4</p>
  <p id="edit-size">輸出尺寸：放入圖 1 後顯示</p>
  <div style="display:flex;gap:8px;flex-wrap:wrap">
   <button id="edit-submit" type="button" style="background:#1d4ed8;color:white;padding:10px 18px;

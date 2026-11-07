@@ -20,6 +20,14 @@ export async function request(url,options={}){
   return result;
 }
 
+// The only source of "verified / not yet verified" wording: configs/capabilities.json.
+export function capabilityLabel(session,id){const c=session?.capabilities?.[id];if(!c)return "驗收狀態未知";
+  const prefix=c.class==="experimental"?"實驗功能，":"";
+  if(c.state==="verified"||c.state==="released")return prefix+"已通過 GPU 驗收";
+  if(c.state==="blocked")return prefix+"目前停用（未通過驗收）";
+  if(c.state==="disabled")return prefix+"已停用";
+  return prefix+"尚未通過 GPU 驗收";}
+
 // Re-read on every call: the active backbone can change on the model page while tabs stay open.
 export async function session(){
   state.session=await request("/api/session");state.csrf=state.session.csrf;

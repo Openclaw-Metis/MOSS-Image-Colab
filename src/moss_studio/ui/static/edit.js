@@ -1,4 +1,4 @@
-import {request,session,currentProject,pollJob,draftSaver,TERMINAL} from "/static/api.js";
+import {request,session,currentProject,pollJob,draftSaver,TERMINAL,capabilityLabel} from "/static/api.js";
 const $=(id)=>document.getElementById(id);
 const SLOTS=[1,2,3,4];
 const E={project:null,slots:[null,null,null,null],active:null,pollToken:0,submitting:false,
@@ -103,6 +103,7 @@ window.mossEdit={
     const root=$("edit-root");if(!root)return;
     if(E.bound===root){await followProject().catch(e=>message(e.message));return;}
     E.bound=root;const s=await session();E.profile=s.profiles.find(p=>p.id==="edit_v1")||{};
+    $("edit-summary").textContent=`SFT bf16 · Edit LoRA · ${E.profile.steps} 步 · CFG ${E.profile.cfg} · ${capabilityLabel(s,"instruction_edit_4")}`;
     E.saver=draftSaver("edit",{getProject:()=>E.project,capture,onState:(t)=>{$("edit-save-state").textContent=t;}});
     for(const i of SLOTS){$(`edit-file-${i}`).onchange=(e)=>upload(i,e.target.files[0]);
       $(`edit-remove-${i}`).onclick=()=>remove(i);$(`edit-role-${i}`).oninput=()=>E.saver.schedule();}
