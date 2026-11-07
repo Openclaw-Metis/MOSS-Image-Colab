@@ -4,9 +4,9 @@
 
 - [x] Stage 0：領域契約、原子 JSON、CAS、SQLite ledger。PASS；v1.3 加 Windows CPU 測試路徑。
 - [x] Stage 1：固定環境、權重校驗、text/edit/vision 載入、認證通道端到端。PASS。
-- [ ] Stage 2：文生圖與排版。程式完成；**GPU 批次 A** 待跑（AC-04 五筆、排版下載、AC-19 繁中 10 例）。
-- [ ] Stage 3：fast8 與 VRAM 模式。程式完成；**GPU 批次 B** 待跑（VRAM 對照、AC-06）。
-- [ ] Stage 4：1～4 圖指令修圖。程式完成；**GPU 批次 B** 待跑（AC-08）。
+- [x] Stage 2：文生圖與排版。PASS（2026-11-07 批次 A：AC-04 通過；AC-19 初評 7/10 未達門檻，已標示限制，評分待使用者確認）。
+- [x] Stage 3：fast8 與 VRAM 模式。PASS（2026-11-07 批次 B：AC-06 通過，8 步約 10.5 秒；VRAM 改為 auto）。
+- [ ] Stage 4：1～4 圖指令修圖。程式完成；**AC-08** 待在介面以固定素材實測（1／2／4 圖各 3 例）。
 - [ ] Stage 5：筆刷重繪。程式完成；**GPU 批次 C** 待跑（AC-09 品質）。
 - [ ] Stage 6：色彩／深度＋視覺參考（實驗）。程式完成；**GPU 批次 C** 待跑（AC-11、AC-10）。缺 MoGe 估計圖預覽。
 - [ ] Stage 7：模型管理與分段放大。程式完成（缺使用者自加 HF LoRA）；**GPU 批次 D** 待跑（AC-12～14、AC-20）。

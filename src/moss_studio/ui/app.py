@@ -24,6 +24,15 @@ PROJECT_MENU_HTML = """
 """
 
 
+# AC-19 batch A (2026-11-07): 7/10 zh-TW layouts fully correct, below the 8/10 gate. The spec
+# requires stating the limit where titles are written; see docs/evidence/stage2-batch-a.
+ZH_TW_NOTICE = (
+    '<p role="note" style="background:#fef3c7;color:#713f12;padding:8px 12px;border-radius:6px">'
+    "繁體中文標題可能寫錯：實測 10 張中有 3 張出錯（近形字替換，或把框描述的字寫進標題）。"
+    "請逐字檢查；框描述避免寫顏色等可能被畫成文字的詞，重要標題可改用後製加字。</p>"
+)
+
+
 def tab_loader(service, module: str, handle: str) -> str:
     """Client-only select hook: lazy-import the tab module, then (re)bind it to the DOM."""
     version = hashlib.sha256(
@@ -72,6 +81,7 @@ def build_ui(service):
                             label="繪製方式",
                         )
                         gr.HTML('<p id="moss-profile-summary">SFT bf16 · 開發驗證中</p>')
+                        gr.HTML(ZH_TW_NOTICE)
                         with gr.Accordion("進階設定", open=False):
                             negative = gr.Textbox(label="負向提示詞", value="")
                             seed = gr.Textbox(label="種子（留空自動產生）", value="")

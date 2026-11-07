@@ -1,0 +1,24 @@
+{
+  "scorer": "Claude Code 初評（逐張目視），待使用者人工確認後才算 AC-19 正式結果",
+  "scored_at": "2026-11-07",
+  "criteria": "所有 text 框逐字正確（繁體字形）且主標題位於其框的大致範圍內；features_met 為 3 項必要特徵中符合的數量",
+  "cases": {
+    "zh01-mountain-travel": {"expected_text": ["山間慢旅"], "observed_text": ["山間慢旅"], "title_exact": true, "all_text_exact": true, "title_region_ok": true, "features_met": 3, "notes": ""},
+    "zh02-railway-festival": {"expected_text": ["臺灣鐵道節", "全臺車站同步展出"], "observed_text": ["臺灣鐵道節", "全臺車站同步展出"], "title_exact": true, "all_text_exact": true, "title_region_ok": true, "features_met": 3, "notes": "攝影風格，復古感偏弱但火車為老式"},
+    "zh03-lantern-temple": {"expected_text": ["龍山寺燈會"], "observed_text": ["龍山寺燈會"], "title_exact": true, "all_text_exact": true, "title_region_ok": true, "features_met": 3, "notes": ""},
+    "zh04-beef-noodle": {"expected_text": ["牛肉麵節", "十一月週末限定"], "observed_text": ["牛肉麵節", "十一月周末限定"], "title_exact": true, "all_text_exact": false, "title_region_ok": true, "features_met": 3, "notes": "副標「週」寫成「周」"},
+    "zh05-reading-harvest": {"expected_text": ["閱讀豐收季"], "observed_text": ["橘棕色豐收季"], "title_exact": false, "all_text_exact": false, "title_region_ok": true, "features_met": 3, "notes": "框描述「橘棕色圓體標題」的顏色詞被寫進標題，取代「閱讀」"},
+    "zh06-art-weekend": {"expected_text": ["藝術週末", "臺北市立美術館"], "observed_text": ["藝術週末", "臺北市立美術館"], "title_exact": true, "all_text_exact": true, "title_region_ok": true, "features_met": 3, "notes": ""},
+    "zh07-typhoon-notice": {"expected_text": ["颱風防災須知", "備妥手電筒與飲水", "遠離海邊與河川"], "observed_text": ["颱風防災須知", "備妥手電筒與飲水", "遠離海邊與河川"], "title_exact": true, "all_text_exact": true, "title_region_ok": true, "features_met": 3, "notes": ""},
+    "zh08-night-market": {"expected_text": ["夜市美食地圖"], "observed_text": ["夜市美食地圖"], "title_exact": true, "all_text_exact": true, "title_region_ok": true, "features_met": 3, "notes": "背景招牌為無意義字，不在評分範圍"},
+    "zh09-tulip-show": {"expected_text": ["鬱金香花展"], "observed_text": ["鬱花香花展"], "title_exact": false, "all_text_exact": false, "title_region_ok": true, "features_met": 3, "notes": "「金」被替換成「花」"},
+    "zh10-ocean-concert": {"expected_text": ["聽見海洋", "七月十八日 墾丁"], "observed_text": ["聽見海洋", "七月十八日 墾丁"], "title_exact": true, "all_text_exact": true, "title_region_ok": true, "features_met": 3, "notes": ""}
+  },
+  "summary": {
+    "success": 7,
+    "total": 10,
+    "title_exact": 8,
+    "decision_threshold": 8,
+    "decision": "未達 ≥8/10：依規格 AC-19，README 與文生圖分頁須明示繁中字形限制，並由使用者決定是否調整目標"
+  }
+}

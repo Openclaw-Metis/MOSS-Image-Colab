@@ -13,8 +13,8 @@
   "gradio": "6.31.0",
   "huggingface_hub": "1.33.0",
   "transitive_lock": "configs/requirements-colab-py313.lock",
-  "engine_vram_mode": "lowvram",
-  "engine_vram_mode_note": "Stage 1/2 measured with --lowvram (1024² 50 steps ≈113–128 s). Stage 3 GPU batch B compares 'auto' before changing this default.",
+  "engine_vram_mode": "auto",
+  "engine_vram_mode_note": "GPU batch B 2026-11-07 on L4: 1024² quality50 measured auto 111.06 s vs lowvram 111.44 s (warm-up 123.0 vs 124.0 s); no OOM either way. Difference is within noise; auto lets ComfyUI manage memory. Evidence: docs/evidence/stage3-batch-b.",
   "gradio_sources": {
     "queueing_blob_sha": "2b4a6e698e13ff3c3dee9fc30ab8960b90875f08",
     "image_editor_blob_sha": "737afbbf7816e6a0c6044f965e2f847a00ba5302"

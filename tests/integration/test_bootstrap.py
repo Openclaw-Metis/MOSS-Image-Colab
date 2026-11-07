@@ -89,10 +89,11 @@ def test_engine_vram_mode_comes_from_lock_and_rejects_unknown(tmp_path):
     root = Path(__file__).resolve().parents[2]
     bootstrap = ColabBootstrap(root, tmp_path / "runtime", tmp_path / "models")
     default = bootstrap.engine_command()
-    assert "--lowvram" in default  # current pinned default until Stage 3 measures 'auto'
-    auto = bootstrap.engine_command("auto")
-    assert not any(flag in auto for flag in ("--lowvram", "--highvram", "--normalvram"))
-    assert auto[:7] == default[:7]
+    # GPU batch B chose 'auto' (no flag); the explicit override still adds --lowvram.
+    assert bootstrap.runtime["engine_vram_mode"] == "auto"
+    assert not any(flag in default for flag in ("--lowvram", "--highvram", "--normalvram"))
+    low = bootstrap.engine_command("lowvram")
+    assert "--lowvram" in low and low[:7] == default[:7]
     with pytest.raises(ValidationError):
         bootstrap.engine_command("gpu-only")
 

@@ -1,6 +1,6 @@
 # Stage 3～8：程式完成紀錄（規格 v1.3.0）
 
-狀態：**全部為「程式完成」，GPU 批次 B、C、D 均未執行；沒有任何一項標 PASS。**
+狀態（2026-11-07 更新）：**Stage 3 PASS**（GPU 批次 B：AC-06 通過、VRAM 模式改為 auto，證據見 [stage3-batch-b](../evidence/stage3-batch-b/README.md)）。Stage 4～8 仍為「程式完成」：AC-08 需在介面以固定素材操作，批次 C、D 未執行。
 驗證環境：Windows 11、Python 3.13.15、Gradio 6.31.0；CPU 測試 189 passed、7 skipped；ruff 通過。
 瀏覽器檢查一律使用 `scripts/dev_server.py` 假引擎，只證明 UI 與 API 串接。
 
@@ -15,9 +15,10 @@
 
 ## 測試穩定性
 
-全套測試曾有一次 `test_saved_result_immutable_seed_and_offline_duplicate` 失敗、單獨重跑通過。
-推測為 Windows `msvcrt.LK_LOCK` 每次重試等 1 秒，使檔案鎖競爭超過測試期限；改為非阻塞輪詢後連跑 4 次全過。
-此為推斷，Linux 路徑（flock）不受影響。
+全套測試在 Windows 上曾間歇失敗（`test_saved_result…`、`test_queue_bound…`）。實際原因：Windows 不允許
+讀取正被另一執行緒 `os.replace` 的檔案（反之亦然），會丟 `PermissionError`；Linux 沒有此限制。
+`storage/atomic.py` 的 Windows 分支改為對開檔與 replace 短暫重試後，連跑 6 次全部通過。先前推測的
+`LK_LOCK` 1 秒重試只是次要因素（也已改為非阻塞輪詢）。POSIX 路徑不受影響。
 
 ## 回滾
 
