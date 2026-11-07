@@ -1,0 +1,20 @@
+{
+  "id": "edit_v1",
+  "version": 1,
+  "label": "指令修圖",
+  "task_family": "edit",
+  "source": "Comfy-Org workflow_templates image_moss_image_edit: 30 steps, cfg 4, euler/normal, SLG single 22 over 0-1, Edit LoRA 1.0, Moss-Image-Edit, references scaled to 1.0 MP / 16 px",
+  "steps": 30,
+  "cfg": 4.0,
+  "sampler": "euler",
+  "scheduler": "normal",
+  "shift": null,
+  "slg": {"double_layers": "", "single_layers": "22", "start_percent": 0.0, "end_percent": 1.0},
+  "lora_stack": [{"artifact_id": "edit_sft", "strength": 1.0}],
+  "allowed_models": ["sft_bf16"],
+  "negative_prompt": true,
+  "default_negative_prompt": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact",
+  "edit_format": "Moss-Image-Edit",
+  "reference_megapixels": 1.0,
+  "state": "probing"
+}

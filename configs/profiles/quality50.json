@@ -1,6 +1,8 @@
 {
   "id": "quality50_v1",
   "version": 1,
+  "label": "精細 50 步",
+  "task_family": "t2i",
   "steps": 50,
   "cfg": 3.0,
   "sampler": "euler",
@@ -8,5 +10,7 @@
   "shift": 5.0,
   "slg": {"double_layers": "", "single_layers": "22", "start_percent": 0.0, "end_percent": 0.5},
   "lora_stack": [],
+  "allowed_models": ["sft_bf16", "base_bf16"],
+  "negative_prompt": true,
   "state": "probing"
 }

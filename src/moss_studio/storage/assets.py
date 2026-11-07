@@ -2,6 +2,7 @@
 
 import hashlib
 import io
+import os
 from pathlib import Path
 
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -63,8 +64,55 @@ class AssetStore:
             with temporary.open("xb") as stream:
                 stream.write(encoded)
                 stream.flush()
-                import os
+                os.fsync(stream.fileno())
+            temporary.replace(final)
+            atomic_json(directory / f"{identifier}.json", asset)
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            final.unlink(missing_ok=True)
+            raise
+        return asset
 
+    def restore(self, project_id: str, meta: dict, data: bytes) -> dict:
+        """Imports an exported asset under a new project, keeping its id (drafts refer to it).
+
+        The bytes must match the manifest hash and decode as a single-frame PNG; metadata is
+        rebuilt from the decoded image instead of trusting the archive.
+        """
+        identifier = validate_id(meta.get("id"))
+        if hashlib.sha256(data).hexdigest() != meta.get("sha256"):
+            raise ValidationError("專案檔素材 hash 不符")
+        try:
+            with Image.open(io.BytesIO(data)) as image:
+                if image.format != "PNG" or getattr(image, "n_frames", 1) != 1:
+                    raise ValidationError("專案檔素材必須是 PNG")
+                width, height = image.size
+                image.verify()
+        except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
+            raise ValidationError("專案檔素材無法解碼") from exc
+        asset = {
+            "id": identifier,
+            "project_id": project_id,
+            "kind": meta.get("kind"),
+            "path": f"{project_id}/{identifier}.png",
+            "mime": "image/png",
+            "width": width,
+            "height": height,
+            "bytes": len(data),
+            "sha256": meta["sha256"],
+            "transform": {},
+            "source_order": 0,
+        }
+        validate_asset(asset)
+        directory = self._directory(project_id)
+        final = directory / f"{identifier}.png"
+        if final.exists():
+            raise ValidationError("素材已存在")
+        temporary = directory / f".{identifier}.part"
+        try:
+            with temporary.open("xb") as stream:
+                stream.write(data)
+                stream.flush()
                 os.fsync(stream.fileno())
             temporary.replace(final)
             atomic_json(directory / f"{identifier}.json", asset)

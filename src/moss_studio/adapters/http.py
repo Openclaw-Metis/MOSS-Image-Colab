@@ -5,15 +5,16 @@ import json
 import secrets
 import zipfile
 
+import gradio as gr
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
-import gradio as gr
 from moss_studio.adapters.comfy import EngineError
 from moss_studio.domain.contracts import ConflictError, ValidationError, digest, new_id
 from moss_studio.domain.layout import compile_layout, parse_layout
 from moss_studio.services.resources import inspect_runtime
+from moss_studio.storage.archive import export_project, import_project
 from moss_studio.storage.atomic import private_dir
 
 LOGIN = """<!doctype html><html lang="zh-Hant"><meta charset="utf-8">
@@ -133,8 +134,19 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
         return {
             "csrf": csrf,
             "tasks": sorted(service.tasks),
-            "profile_id": service.profile["id"],
-            "model_artifact_id": "sft_bf16",
+            "profile_id": service.default_profile_id,
+            "profiles": [
+                {
+                    key: profile[key]
+                    for key in ("id", "label", "task_family", "steps", "cfg", "allowed_models")
+                }
+                | {
+                    "negative_prompt": profile.get("negative_prompt", True),
+                    "default_negative_prompt": profile.get("default_negative_prompt", ""),
+                }
+                for profile in service.profiles.values()
+            ],
+            "model_artifact_id": service.models.active_backbone(),
             "release_status": "development",
         }
 
@@ -149,24 +161,64 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
             for project in service.projects.list()
         ]
 
+    def with_hashes(project: dict) -> dict:
+        hashes = {tab: digest(draft) for tab, draft in project["drafts"].items()}
+        return {**project, "draft_hash": hashes["t2i"], "draft_hashes": hashes}
+
     @app.post("/api/projects")
     async def new_project(request: Request):
         value = await object_body(request)
-        project = service.projects.create(value.get("name", "未命名創作"))
-        return {**project, "draft_hash": digest(project["drafts"]["t2i"])}
+        return with_hashes(service.projects.create(value.get("name", "未命名創作")))
 
     @app.get("/api/projects/{project_id}")
     def project(project_id: str):
-        value = service.projects.get(project_id)
-        return {**value, "draft_hash": digest(value["drafts"]["t2i"])}
+        return with_hashes(service.projects.get(project_id))
 
     @app.put("/api/projects/{project_id}/draft")
     async def save_draft(project_id: str, request: Request):
         value = await object_body(request)
+        tab = value.get("tab", "t2i")
         project = await run_in_threadpool(
-            service.save_draft, project_id, value.get("draft"), value.get("expected_revision")
+            service.save_draft, project_id, value.get("draft"), value.get("expected_revision"), tab
         )
-        return {"revision": project["revision"], "draft_hash": digest(project["drafts"]["t2i"])}
+        return {"revision": project["revision"], "draft_hash": digest(project["drafts"][tab])}
+
+    @app.get("/api/projects/{project_id}/assets")
+    def list_assets(project_id: str):
+        project = service.projects.get(project_id)
+        return [
+            {key: meta[key] for key in ("id", "kind", "width", "height")}
+            for meta in (service.assets.get(project_id, a) for a in project["asset_ids"])
+        ]
+
+    @app.get("/api/models")
+    def models():
+        return {"models": service.models.list(), "busy": service.busy()}
+
+    @app.post("/api/models/{artifact_id}/download")
+    async def download_model(artifact_id: str):
+        return await run_in_threadpool(service.models.download, artifact_id)
+
+    @app.post("/api/models/activate")
+    async def activate_model(request: Request):
+        value = await object_body(request)
+        with service.lock:
+            return service.models.activate(value.get("artifact_id"), busy=service.busy())
+
+    @app.post("/api/projects/{project_id}/assets")
+    async def upload_asset(project_id: str, request: Request, kind: str = "input"):
+        # Raw image bytes; the browser file name is never read or stored. Stream with a hard
+        # cap so an oversized body is refused before it is fully buffered.
+        limit = 20 * 1024**2
+        if int(request.headers.get("content-length") or 0) > limit:
+            raise HTTPException(413, "圖片需小於 20 MiB")
+        chunks, size = [], 0
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > limit:
+                raise HTTPException(413, "圖片需小於 20 MiB")
+            chunks.append(chunk)
+        return await run_in_threadpool(service.import_asset, project_id, b"".join(chunks), kind)
 
     @app.post("/api/layout/validate")
     async def layout(request: Request):
@@ -181,7 +233,7 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
         )
         return {
             "layout": compile_layout(
-                parsed["caption"], parsed["items"], value["width"], value["height"]
+                parsed["caption"], parsed["items"], value["width"], value["height"], parsed["meta"]
             ),
             "items": parsed["items"],
         }
@@ -223,6 +275,35 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
             filename=f"{asset_id}.png",
         )
 
+    @app.get("/api/projects/{project_id}/export")
+    def export(project_id: str):
+        path = private_dir(service.root / "exports") / f"{new_id()}.zip"
+        export_project(service.projects, service.assets, project_id, path)
+        return FileResponse(path, filename=f"moss-project-{project_id[:8]}.zip")
+
+    @app.post("/api/projects/import")
+    async def import_archive(request: Request):
+        # Stream to a private temp file with a hard cap; never trust Content-Length alone.
+        limit = 1024**3
+        if int(request.headers.get("content-length") or 0) > limit:
+            raise HTTPException(413, "專案檔超過 1 GiB")
+        staging = private_dir(service.root / "staging")
+        path = staging / f"{new_id()}.zip"
+        size = 0
+        try:
+            with path.open("xb") as stream:
+                async for chunk in request.stream():
+                    size += len(chunk)
+                    if size > limit:
+                        raise HTTPException(413, "專案檔超過 1 GiB")
+                    stream.write(chunk)
+            project = await run_in_threadpool(
+                import_project, service.projects, service.assets, path, staging
+            )
+        finally:
+            path.unlink(missing_ok=True)
+        return with_hashes(project)
+
     @app.get("/api/works/{project_id}.zip")
     def works(project_id: str):
         project = service.projects.get(project_id)
@@ -235,14 +316,15 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
                     bundle.write(service.assets.path(project_id, asset_id), f"{asset_id}.png")
         return FileResponse(path, filename="moss-works.zip")
 
+    static_dir = service.repository / "src/moss_studio/ui/static"
+    # Fixed at startup: only the shipped front-end modules, never an arbitrary path.
+    static_files = {path.name for path in static_dir.glob("*.js") if not path.is_symlink()}
+
     @app.get("/static/{filename}")
     def static(filename: str):
-        if filename not in {"studio.js", "layout.js"}:
+        if filename not in static_files:
             raise HTTPException(404)
-        return FileResponse(
-            service.repository / "src/moss_studio/ui/static" / filename,
-            media_type="text/javascript",
-        )
+        return FileResponse(static_dir / filename, media_type="text/javascript")
 
     theme = gr.themes.Soft(primary_hue="blue", font=["system-ui", "sans-serif"])
     values = theme.to_dict()["theme"]

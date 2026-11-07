@@ -30,3 +30,17 @@ Colab 部分映像無法使用 venv 的 ensurepip；bootstrap 用 `with_pip=Fals
 - [固定模型來源](https://huggingface.co/Comfy-Org/MOSS-Image/tree/2929efe3cdd506c0a430bcfca70a9a8d805cc095)
 
 版本與模型 bytes/hash 見 configs。狀態為 candidate；所有正式 capability 尚未 released。
+
+## v1.3 參數來源（未經 GPU 驗收）
+
+| 功能 | 設定 | 來源 |
+|---|---|---|
+| fast8 | `lora_latest.safetensors`（lodestones/MOSS-Image-SFT-8-steps-dmd @f95df83）強度 0.7、8 步 Euler、shift 5、CFG 1 | 作者示範 Space `app.py` |
+| 指令修圖 | Edit LoRA 1.0、30 步、CFG 4、euler／normal、SLG 單層 22（0→1）、`Moss-Image-Edit`、圖 1 經 `ImageScaleToTotalPixels`（1 MP、16 px）決定輸出 | Comfy-Org `image_moss_image_edit` 範本 |
+| 色彩／深度 | 控制 LoRA 1.0、TSR 0.95／1、shift 5、SLG 單層 24（0→1）、25 步 `er_sde`／simple、CFG 3、`MOSSImageControl` 強度 1 結束 0.6、MoGe 3（resolution 9、refine 3） | Comfy-Org `image_moss_image_color_depth_control` 範本；差異：用 KSampler `er_sde`，範本為 SamplerCustom s_noise 1.05 |
+| 視覺參考（實驗） | 無 VAE 的 `TextEncodeMOSSImageEdit`，每張參考縮到 ≤384²，`image_strength` 可調 | ComfyUI `nodes_moss_image.py` @1332fab |
+| 分段放大 | 每段 ≤1.5 倍、16 px 對齊、像素空間 `ImageScale` lanczos → VAEEncode → 重新採樣（denoise 0.6） | ComfyUI MOSS-Image 文件「Going above 2 MP」 |
+| 筆刷重繪 | `VAEEncode` → `SetLatentNoiseMask`（`LoadImageMask` red）→ 30 步；柔邊映射與合成為本案設計 | 本案產品決策，需 AC-09 驗收 |
+
+新增固定權重：`dmd8_lora`（1,189,176,800 bytes）、`moge3_vitg`（Comfy-Org/MoGe @1484985，2,501,605,198 bytes，宣告授權 MIT）。
+SHA256 取自 Hugging Face LFS 資訊，下載時仍會實際校驗。

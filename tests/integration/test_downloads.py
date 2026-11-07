@@ -39,6 +39,38 @@ def test_verified_atomic_download_and_rerun(tmp_path, artifact):
     assert len(calls) == 1
 
 
+def test_repo_path_differs_from_local_name_for_community_lora(tmp_path, artifact):
+    spec, data = artifact
+    spec = {
+        **spec,
+        "repo": "lodestones/MOSS-Image-SFT-8-steps-dmd",
+        "source_path": "lora_latest.safetensors",
+        "filename": "loras/dmd8_pinned.safetensors",
+    }
+    requested = []
+
+    def fetch(spec, staging):
+        from moss_studio.services.downloads import source_path
+
+        requested.append(source_path(spec))
+        path = staging / source_path(spec)
+        path.write_bytes(data)
+        return path
+
+    final = download_locked(spec, tmp_path, fetch=fetch)
+    assert requested == ["lora_latest.safetensors"]
+    assert final == tmp_path / "loras" / "dmd8_pinned.safetensors"
+
+
+@pytest.mark.parametrize(
+    "remote", ["../escape.safetensors", "/abs.safetensors", "a\\b.safetensors", "x.bin", 7]
+)
+def test_unsafe_repo_source_paths_rejected(tmp_path, artifact, remote):
+    spec, _ = artifact
+    with pytest.raises(ValidationError):
+        download_locked({**spec, "source_path": remote}, tmp_path, fetch=lambda *_: None)
+
+
 def test_failed_download_never_becomes_ready(tmp_path, artifact, monkeypatch):
     spec, data = artifact
     monkeypatch.setattr("moss_studio.services.downloads.time.sleep", lambda _: None)

@@ -1,68 +1,109 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "spec_version": "1.3.0",
   "capabilities": [
     {
       "id": "t2i_layout",
-      "state": "unverified",
-      "evidence": [],
+      "class": "required",
+      "state": "verified",
+      "evidence": [
+        "docs/evidence/stage2-batch-a/zh_tw_report.json",
+        "docs/evidence/stage2-batch-a/zh_tw_scoring.json"
+      ],
       "workflow_hash": null,
-      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+      "reason": "排版生成 10/10 成功；繁中逐字正確 7/10（未達 8/10，介面已標示限制）"
     },
     {
       "id": "quality_50",
-      "state": "unverified",
-      "evidence": [],
+      "class": "required",
+      "state": "verified",
+      "evidence": [
+        "docs/evidence/stage2-batch-a/benchmark.json"
+      ],
       "workflow_hash": null,
-      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+      "reason": "AC-04 通過（L4、--lowvram、p50 111.5 s）；尚未整合放行"
     },
     {
       "id": "fast_8",
-      "state": "unverified",
-      "evidence": [],
+      "class": "required",
+      "state": "verified",
+      "evidence": [
+        "docs/evidence/stage3-batch-b/fast8_benchmark.json"
+      ],
       "workflow_hash": null,
-      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+      "reason": "AC-06 通過：暖機 23.4 s、正式 10.4–10.5 s（約為 quality50 的 1/10.6）；同種子目視畫質相當、略偏平滑"
     },
     {
       "id": "instruction_edit_4",
+      "class": "required",
       "state": "unverified",
       "evidence": [],
       "workflow_hash": null,
-      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+      "reason": "程式完成；GPU 批次 B（AC-08）未執行"
     },
     {
       "id": "masked_inpaint",
+      "class": "required",
       "state": "unverified",
       "evidence": [],
       "workflow_hash": null,
-      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
-    },
-    {
-      "id": "vision_reference",
-      "state": "unverified",
-      "evidence": [],
-      "workflow_hash": null,
-      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+      "reason": "程式完成，柔邊外逐像素保留已有 CPU 測試；GPU 批次 C（AC-09 品質）未執行"
     },
     {
       "id": "color_depth",
+      "class": "required",
       "state": "unverified",
       "evidence": [],
       "workflow_hash": null,
-      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+      "reason": "程式完成；估計圖預覽未做；GPU 批次 C（AC-11）未執行"
+    },
+    {
+      "id": "hires",
+      "class": "required",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "分段放大程式完成；GPU 批次 D（AC-12）未執行"
     },
     {
       "id": "model_manager",
+      "class": "required",
       "state": "unverified",
       "evidence": [],
       "workflow_hash": null,
-      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+      "reason": "固定清單下載與 SFT↔Base 切換程式完成；使用者自加 HF LoRA 未實作；GPU 批次 D（AC-13、AC-14）未執行"
     },
     {
-      "id": "native_2k",
+      "id": "project_archive",
+      "class": "required",
       "state": "unverified",
       "evidence": [],
       "workflow_hash": null,
-      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+      "reason": "匯出入程式與 CPU 測試完成；新 VM 續編（AC-15）未執行"
+    },
+    {
+      "id": "vision_reference",
+      "class": "experimental",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "實驗：模型沒有正式圖片輸入；GPU 批次 C（AC-10）未執行"
+    },
+    {
+      "id": "native_2048",
+      "class": "experimental",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "實驗：AC-20 未執行"
+    },
+    {
+      "id": "edit_hq",
+      "class": "optional",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "選用：未納入固定清單"
     }
   ]
 }

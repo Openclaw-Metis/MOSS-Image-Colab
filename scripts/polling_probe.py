@@ -202,7 +202,7 @@ async def submit(request: Request):
             return {"job_id": job_id}
         if sum(j["state"] in {"queued", "running", "cancelling"} for j in JOBS.values()) >= 3:
             raise HTTPException(409, "佇列已滿")
-        graphs = json.loads((ROOT / "probe-graphs.json").read_text())
+        graphs = json.loads((ROOT / "probe-graphs.json").read_text(encoding="utf-8"))
         graph = graphs[task]
         graph["4"]["inputs"]["text" if task == "text" else "prompt"] = prompt
         if task != "text":

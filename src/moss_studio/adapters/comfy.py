@@ -77,6 +77,39 @@ class ComfyClient:
             "/prompt", {"prompt": graph, "client_id": client_id, "prompt_id": prompt_id}
         )
 
+    def upload_image(self, name: str, data: bytes) -> str:
+        """POST /upload/image (type=input, overwrite). Names are UUID-based, never user files."""
+        if not name.startswith("moss_") or "/" in name or "\\" in name or not name.endswith(".png"):
+            raise ValidationError("引擎輸入檔名必須由本工具產生")
+        boundary = "moss-" + new_id()
+        parts = [
+            (
+                f'--{boundary}\r\nContent-Disposition: form-data; name="image"; '
+                f'filename="{name}"\r\nContent-Type: image/png\r\n\r\n'
+            ).encode()
+            + data
+            + b"\r\n"
+        ]
+        for field, value in (("type", "input"), ("overwrite", "true")):
+            parts.append(
+                f'--{boundary}\r\nContent-Disposition: form-data; name="{field}"\r\n\r\n'
+                f"{value}\r\n".encode()
+            )
+        body = b"".join(parts) + f"--{boundary}--\r\n".encode()
+        request = Request(
+            self.base_url + "/upload/image",
+            data=body,
+            headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+        )
+        try:
+            with self.opener.open(request, timeout=max(self.timeout, 60)) as response:
+                result = json.loads(response.read(64 * 1024))
+        except (HTTPError, URLError, TimeoutError, ValueError) as exc:
+            raise EngineError("E_ENGINE：參考圖無法送入引擎") from exc
+        if result.get("name") != name or result.get("subfolder", "") != "":
+            raise EngineError("E_ENGINE：引擎回報的參考圖名稱不符")
+        return name
+
     def cancel_owned(self, prompt_id: str, *, exclusive_engine: bool) -> str:
         validate_id(prompt_id)
         if not exclusive_engine:

@@ -3,6 +3,7 @@ import socket
 import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from threading import Thread
 from urllib.request import urlopen
 
@@ -84,6 +85,22 @@ def test_comfy_public_or_ambiguous_urls_rejected(url):
         ComfyClient(url)
 
 
+def test_engine_vram_mode_comes_from_lock_and_rejects_unknown(tmp_path):
+    root = Path(__file__).resolve().parents[2]
+    bootstrap = ColabBootstrap(root, tmp_path / "runtime", tmp_path / "models")
+    default = bootstrap.engine_command()
+    # GPU batch B chose 'auto' (no flag); the explicit override still adds --lowvram.
+    assert bootstrap.runtime["engine_vram_mode"] == "auto"
+    assert not any(flag in default for flag in ("--lowvram", "--highvram", "--normalvram"))
+    low = bootstrap.engine_command("lowvram")
+    assert "--lowvram" in low and low[:7] == default[:7]
+    with pytest.raises(ValidationError):
+        bootstrap.engine_command("gpu-only")
+
+
+@pytest.mark.skipif(
+    not Path("/proc/self").exists(), reason="程序所有權檢查依賴 Linux /proc（Colab 執行階段）"
+)
 def test_managed_process_rerun_stop_and_no_unowned_adoption(tmp_path):
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))

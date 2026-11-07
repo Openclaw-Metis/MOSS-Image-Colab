@@ -32,6 +32,15 @@ class ProjectStore:
             atomic_json(self._path(project["id"]), project)
         return project
 
+    def adopt(self, project: dict) -> dict:
+        """Writes an imported project under its new id; refuses to overwrite anything."""
+        validate_project(project)
+        with self._lock(project["id"]):
+            if self._path(project["id"]).exists():
+                raise ConflictError("同識別碼專案已存在")
+            atomic_json(self._path(project["id"]), project)
+        return project
+
     def get(self, project_id: str) -> dict:
         return migrate_project(read_json(self._path(project_id)))
 

@@ -1,23 +1,40 @@
 # MOSS-Image-Colab
 目標是在 Google Colab 以 ComfyUI 無頭引擎與 Gradio 五分頁執行 MOSS-Image。
 
-**開發中，尚非可用的完整生圖工具。** Stage 0、Stage 1 已完成；Stage 2 實作中。
-五分頁、模型與通道必須依 [原始規格](specs/requirements.md) 驗收，未跑項目不算通過。
+**開發中，尚非已驗收的完整生圖工具。** 依 [規格 v1.3.0](specs/requirements.md)：Stage 0、1 已 PASS；
+Stage 2～8 程式完成，但 GPU 驗收批次尚未執行，未跑的項目不算通過。進度見 [todo.md](todo.md)。
 
-開發檢查：
+五分頁：文生圖與排版（精細 50 步／加速 8 步、拉框含人物框）、多圖指令修圖（1～4 張）、筆刷局部重繪、
+視覺與深度控制（色彩／深度；視覺參考為實驗）、模型與高解析（固定清單下載、主模型切換、分段放大）。
+專案可匯出成 ZIP，在新的 Colab 匯入續編。
+
+**已知限制（繁中字形）**：GPU 批次 A 實測 10 張繁中排版海報，7 張文字全對、3 張出錯
+（「週」寫成「周」、「鬱金香」寫成「鬱花香」、框描述的「橘棕色」被寫進標題），未達規格 8/10 門檻。
+請逐字檢查成品；框描述避免寫可能被畫成文字的詞，重要標題可改用後製加字。
+詳見 [批次 A 證據](docs/evidence/stage2-batch-a/README.md)。
+
+**使用限制**：不得以真人照片製作換臉、私密或冒用他人身分的內容（Colab 對所有執行環境禁止 deepfakes）。
+
+開發檢查（Linux／macOS）：
 
 ```bash
 python -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.lock
-.venv/bin/python -m pip install -e .
+.venv/bin/python -m pip install -e ".[ui]"
 .venv/bin/pytest -q
-.venv/bin/ruff check src tests
+.venv/bin/ruff check src tests scripts
 ```
 
-進度見 [todo.md](todo.md)、[DEVNOTE.md](DEVNOTE.md) 與 [Stage 0 證據](docs/stages/stage0.md)。
-[Stage 1 證據](docs/stages/stage1.md) 包含真實 L4、登入、上傳、取消、重連與下載結果。
-[Stage 2 進度與限制](docs/stages/stage2.md) 記錄正式工作台實測及尚未完成的 GPU 驗收。
-目前本地驗證為 110 項通過、4 項 GPU 測試跳過；不代表全功能已驗收。
+Windows 用 `.venv\Scripts\python.exe` 執行相同指令；依賴 Linux `/proc` 或符號連結權限的測試會在 Windows 跳過。
+
+不接 GPU 檢查介面（假引擎，產生標明「非模型輸出」的佔位圖，不能當成 GPU 或畫質證據）：
+
+```bash
+python scripts/dev_server.py --data-root .runtime/dev --port 7861
+```
+
+證據：[Stage 0](docs/stages/stage0.md)、[Stage 1](docs/stages/stage1.md)、[Stage 2](docs/stages/stage2.md)、
+[Stage 3～8](docs/stages/stage3-8.md)、[相容性](docs/compatibility.md)。
 
 模型權重、使用者素材與憑證不入版控。`docs/evidence/` 僅保留本專案測試生成的範例與驗證紀錄。
-Colab VM 回收會失去本地資料；專案 ZIP 續編仍待後續階段完成。
+Colab VM 回收會失去本地資料；請下載作品，或用專案選單匯出專案 ZIP。

@@ -30,3 +30,8 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+# Pin classification so import order does not depend on what is checked out nearby.
+known-first-party = ["moss_studio"]
+known-third-party = ["gradio"]

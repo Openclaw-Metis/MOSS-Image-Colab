@@ -1,0 +1,21 @@
+{
+  "id": "inpaint_v1",
+  "version": 1,
+  "label": "筆刷重繪",
+  "task_family": "inpaint",
+  "source": "Product decision: quality50 sampler settings at 30 steps on a SetLatentNoiseMask latent; not an upstream inpaint recipe. Requires GPU batch C (AC-09) before release.",
+  "steps": 30,
+  "cfg": 3.0,
+  "sampler": "euler",
+  "scheduler": "simple",
+  "shift": 5.0,
+  "slg": {"double_layers": "", "single_layers": "22", "start_percent": 0.0, "end_percent": 0.5},
+  "lora_stack": [],
+  "allowed_models": ["sft_bf16", "base_bf16"],
+  "negative_prompt": true,
+  "default_negative_prompt": "",
+  "working_megapixels": 1.0,
+  "denoise": {"default": 0.65, "min": 0.05, "max": 1.0},
+  "edge_softness": {"default": 0.15, "min": 0.0, "max": 1.0},
+  "state": "probing"
+}

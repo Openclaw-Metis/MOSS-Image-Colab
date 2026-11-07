@@ -1,23 +1,29 @@
 const svgNS = "http://www.w3.org/2000/svg";
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const clamp = (x, low=0, high=1) => Math.min(high, Math.max(low, x));
+const DEFAULT_CAPTION = {text:"標題", object:"主體", character:"人物"};
+const FILL = {text:"#dbeafe", object:"#ccfbf1", character:"#fef3c7"};
+const parsePalette = (value) => value.split(",").map(x=>x.trim()).filter(Boolean).slice(0,8);
 
 export class LayoutCanvas {
   constructor(request, onChange, getCaption) {
     this.svg=document.getElementById("layout-canvas"); this.request=request;
     this.onChange=onChange; this.getCaption=getCaption; this.items=[]; this.history=[];
-    this.width=1024; this.height=1024; this.selected=null; this.revision=0;
+    this.width=1024; this.height=1024; this.selected=null; this.revision=0; this.meta=null;
     const byId=(id)=>document.getElementById(id);
     byId("layout-selection").onchange=(event)=>{this.selected=event.target.value;this.render();};
     byId("layout-add-text").onclick=()=>this.add("text");
     byId("layout-add-object").onclick=()=>this.add("object");
+    byId("layout-add-character").onclick=()=>this.add("character");
     byId("layout-delete").onclick=()=>this.remove();
     byId("layout-undo").onclick=()=>{if(this.history.length){this.items=this.history.pop();this.commit(false);}};
     byId("layout-apply-json").onclick=()=>this.applyJSON();
-    for(const id of ["layout-kind","layout-caption","layout-text"]){
+    for(const id of ["layout-kind","layout-caption","layout-text","layout-palette"]){
       const update=()=>{const item=this.current();if(!item)return;this.remember();
         item.label=byId("layout-kind").value;item.caption=byId("layout-caption").value;
-        if(item.label==="text")item.text=byId("layout-text").value;else delete item.text;
+        if(item.label==="text")item.text=byId("layout-text").value||"新標題";else delete item.text;
+        const palette=parsePalette(byId("layout-palette").value);
+        if(palette.length)item.palette=palette;else delete item.palette;
         this.commit(false);};
       byId(id)[id==="layout-kind"?"onchange":"oninput"]=update;
     }
@@ -44,7 +50,7 @@ export class LayoutCanvas {
   setSize(width,height){this.width=width;this.height=height;this.render();}
   setItems(items){this.items=clone(items||[]);this.selected=null;this.revision++;this.render();}
   add(label, bbox=[.12,.12,.88,.27]){if(this.items.length>=32){this.hint("最多 32 個框");return;}
-    this.remember();const item={id:crypto.randomUUID(),label,caption:label==="text"?"標題":"主體",
+    this.remember();const item={id:crypto.randomUUID(),label,caption:DEFAULT_CAPTION[label],
       normalized_bbox:bbox,z_order:this.items.length};if(label==="text")item.text="山間慢旅";
     this.items.push(item);this.selected=item.id;this.commit(false);}
   remove(){if(!this.current())return;this.remember();
@@ -56,7 +62,7 @@ export class LayoutCanvas {
     if(item){this.selected=id;this.drag.bbox=[...item.normalized_bbox];}
     else {if(this.items.length>=32)return;
       const label=document.getElementById("layout-kind").value;
-      const added={id:crypto.randomUUID(),label,caption:label==="text"?"文字":"物件",
+      const added={id:crypto.randomUUID(),label,caption:DEFAULT_CAPTION[label],
         normalized_bbox:[...start,...start],z_order:this.items.length};
       if(label==="text")added.text="新標題";this.items.push(added);this.selected=added.id;
       this.drag.mode="new";}
@@ -77,12 +83,15 @@ export class LayoutCanvas {
       const x=a.normalized_bbox,y=b.normalized_bbox;
       return x[0]<y[2]&&y[0]<x[2]&&x[1]<y[3]&&y[1]<x[3];}));
     this.hint(overlap?"框有重疊，已保留；請留意文字可讀性。":"可拖曳移動框，拖圓點調整大小。");}
-  json(){return {summary:{meta:["poster"],canvas:"single",caption:this.captionOverride||this.getCaption()||"創作畫面"},
+  json(){return {summary:{meta:this.meta||["poster"],canvas:"single",caption:this.captionOverride||this.getCaption()||"創作畫面"},
     items:this.items.map(item=>{const [x0,y0,x1,y1]=item.normalized_bbox;
-      const result={label:item.label,caption:item.caption,
-        bbox:[Math.round(y0*this.height)-this.height/2,Math.round(x0*this.width)-this.width/2,
-              Math.round(y1*this.height)-this.height/2,Math.round(x1*this.width)-this.width/2]};
-      if(item.label==="text")result.text=item.text;return result;}),
+      // Same key order as the server compiler: label, caption, text, palette, bbox.
+      const result={label:item.label,caption:item.caption};
+      if(item.label==="text")result.text=item.text;
+      if(item.palette)result.palette=item.palette;
+      result.bbox=[Math.round(y0*this.height)-this.height/2,Math.round(x0*this.width)-this.width/2,
+              Math.round(y1*this.height)-this.height/2,Math.round(x1*this.width)-this.width/2];
+      return result;}),
     bbox_coord_space:"abs_centralized",bbox_format:"yxyx"};}
   async applyJSON(){const revision=this.revision;
     try{const parsed=await this.request("/api/layout/validate",{method:"POST",body:{
@@ -90,6 +99,7 @@ export class LayoutCanvas {
       previous_items:this.items}});
       if(this.revision!==revision)throw Error("畫布已更新，請重新檢查 JSON");
       this.remember();this.items=parsed.items;this.captionOverride=parsed.layout.summary.caption;
+      this.meta=parsed.layout.summary.meta;
       this.commit();this.hint("已套用有效 JSON");
     }catch(error){this.hint(error.message+"；保留上一次有效畫布");}}
   render(syncFields=true){this.svg.setAttribute("viewBox",`0 0 ${this.width} ${this.height}`);
@@ -99,7 +109,7 @@ export class LayoutCanvas {
     for(const item of this.items){const [x0,y0,x1,y1]=item.normalized_bbox;
       const rect=document.createElementNS(svgNS,"rect");rect.dataset.id=item.id;
       for(const [k,v] of Object.entries({x:x0*this.width,y:y0*this.height,width:(x1-x0)*this.width,
-        height:(y1-y0)*this.height,fill:item.label==="text"?"#dbeafe":"#ccfbf1",stroke:item.id===this.selected?"#1d4ed8":"#64748b","stroke-width":3}))rect.setAttribute(k,v);
+        height:(y1-y0)*this.height,fill:FILL[item.label]||FILL.object,stroke:item.id===this.selected?"#1d4ed8":"#64748b","stroke-width":3}))rect.setAttribute(k,v);
       rect.style.cursor="move";this.svg.append(rect);const label=document.createElementNS(svgNS,"text");
       label.setAttribute("x",x0*this.width+10);label.setAttribute("y",y0*this.height+28);
       label.setAttribute("font-size",22);label.setAttribute("fill","#0f172a");label.style.pointerEvents="none";
@@ -118,6 +128,7 @@ export class LayoutCanvas {
       document.getElementById("layout-caption").value=item.caption;
       document.getElementById("layout-text").value=item.text||"";
       document.getElementById("layout-text").disabled=item.label!=="text";
+      document.getElementById("layout-palette").value=(item.palette||[]).join(", ");
       ["x0","y0","x1","y1"].forEach((id,i)=>document.getElementById("layout-"+id).value=item.normalized_bbox[i].toFixed(4));}
       document.getElementById("layout-json").value=JSON.stringify(this.json(),null,2);}
   }

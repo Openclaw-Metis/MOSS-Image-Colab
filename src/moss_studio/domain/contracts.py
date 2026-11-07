@@ -56,7 +56,7 @@ def validate_name(value: str) -> None:
 
 
 TABS = ("t2i", "edit", "inpaint", "control", "models")
-TASKS = ("t2i", "layout", "instruction_edit", "inpaint", "vision", "color_depth")
+TASKS = ("t2i", "layout", "instruction_edit", "inpaint", "vision", "color_depth", "upscale")
 
 
 def new_project(name: str) -> dict:
@@ -213,7 +213,10 @@ def validate_job_spec(spec: dict) -> None:
         ):
             raise ValidationError("參考圖號必須連續並保留順序")
         validate_id(reference["asset_id"])
-    if spec["task"] in {"instruction_edit", "inpaint", "vision", "color_depth"} and not refs:
+    if (
+        spec["task"] in {"instruction_edit", "inpaint", "vision", "color_depth", "upscale"}
+        and not refs
+    ):
         raise ValidationError("此工作需要來源圖")
     if spec["task"] == "inpaint" and spec["mask_asset_id"] is None:
         raise ValidationError("局部重繪需要遮罩")

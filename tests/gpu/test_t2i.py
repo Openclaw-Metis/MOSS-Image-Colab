@@ -18,6 +18,6 @@ def test_product_sft_baseline_six_runs():
     subprocess.run(
         [sys.executable, str(root / "scripts/benchmark_http.py"), str(evidence)], check=True
     )
-    report = json.loads((evidence / "benchmark.json").read_text())
+    report = json.loads((evidence / "benchmark.json").read_text(encoding="utf-8"))
     assert report["passed"]
     assert len([s for s in report["samples"] if not s["warmup"]]) == 5

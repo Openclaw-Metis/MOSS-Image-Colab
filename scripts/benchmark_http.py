@@ -34,9 +34,9 @@ def benchmark(destination: Path, *, count: int = 5, profile: str = "quality50_v1
         session = client.get("/api/session").json()
         client.headers["X-Moss-CSRF"] = session["csrf"]
         if report_path.exists():
-            report = json.loads(report_path.read_text())
+            report = json.loads(report_path.read_text(encoding="utf-8"))
         else:
-            response = client.post("/api/projects", json={"name": "Stage 2 固定 GPU 基準"})
+            response = client.post("/api/projects", json={"name": f"固定 GPU 基準 {profile}"})
             response.raise_for_status()
             report = {
                 "schema_version": 1,
@@ -47,7 +47,9 @@ def benchmark(destination: Path, *, count: int = 5, profile: str = "quality50_v1
                 "warmup_count": 1,
                 "measured_count": count,
                 "model_pins": json.loads(
-                    (Path(__file__).resolve().parents[1] / "configs/models.lock.json").read_text()
+                    (Path(__file__).resolve().parents[1] / "configs/models.lock.json").read_text(
+                        encoding="utf-8"
+                    )
                 ),
                 "samples": [],
             }
@@ -125,4 +127,13 @@ def benchmark(destination: Path, *, count: int = 5, profile: str = "quality50_v1
 
 
 if __name__ == "__main__":
-    benchmark(Path(sys.argv[1]))
+    import argparse
+
+    parser = argparse.ArgumentParser(description="產品 API GPU 基準（暖機 1 次＋正式 N 次）")
+    parser.add_argument("destination", type=Path)
+    parser.add_argument("--count", type=int, default=5)
+    parser.add_argument("--profile", default="quality50_v1", choices=["quality50_v1", "fast8_v1"])
+    args = parser.parse_args()
+    if not 1 <= args.count <= 10:
+        sys.exit("count 必須是 1～10")
+    benchmark(args.destination, count=args.count, profile=args.profile)
