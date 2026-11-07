@@ -74,7 +74,8 @@ class RunnerStub:
 
 
 def wait_terminal(service, job_id):
-    deadline = time.monotonic() + 5
+    # Generous: a loaded Windows runner once took >5 s; the assertions, not the wait, are the test.
+    deadline = time.monotonic() + 15
     while time.monotonic() < deadline:
         job = service.get_job(job_id)
         if job["status"] in {"succeeded", "failed", "cancelled", "interrupted"}:

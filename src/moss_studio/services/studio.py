@@ -338,7 +338,7 @@ class StudioService:
         profile = self.profile_for(spec["profile_id"])
         plan = self._compile(spec, profile)
         graph = plan["graph"]
-        validate_nodes(graph, self.engine.object_info())
+        validate_nodes(graph, self.engine.object_info(), {name for name, _ in plan["inputs"]})
         with self.lock:
             project = self.projects.get(spec["project_id"])
             existing = self.ledger.find_request(spec["project_id"], spec["client_request_id"])

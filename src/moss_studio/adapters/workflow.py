@@ -428,8 +428,13 @@ def compile_upscale(
     return graph
 
 
-def validate_nodes(graph: dict, object_info: dict) -> None:
-    """Checks actual node names, required inputs, connections and loader enum values."""
+def validate_nodes(graph: dict, object_info: dict, pending_uploads=frozenset()) -> None:
+    """Checks actual node names, required inputs, connections and loader enum values.
+
+    ComfyUI lists LoadImage/LoadImageMask choices from files already in its input folder, but the
+    service uploads a job's own images only when the job runs. Those names (moss_*.png, passed as
+    pending_uploads) are therefore accepted; model and option enums stay strict.
+    """
     for node in graph.values():
         info = object_info.get(node["class_type"])
         if info is None:
@@ -443,6 +448,12 @@ def validate_nodes(graph: dict, object_info: dict) -> None:
             if isinstance(value, list) and len(value) == 2 and isinstance(value[0], str):
                 if value[0] not in graph:
                     raise ValidationError("工作流連線不存在")
+                continue
+            if (
+                key == "image"
+                and node["class_type"] in {"LoadImage", "LoadImageMask"}
+                and value in pending_uploads
+            ):
                 continue
             if isinstance(declaration[0], list) and value not in declaration[0]:
                 raise ValidationError(f"E_CAPABILITY：{key} 的模型或選項尚未就緒")

@@ -90,3 +90,20 @@ def test_actual_node_contract_rejects_missing_weights():
         validate_nodes(graph, info)
     with pytest.raises(ValidationError):
         validate_nodes(graph, {})
+
+
+def test_own_pending_uploads_pass_image_enums_but_nothing_else_does():
+    # Real ComfyUI lists only files already in its input folder; the job uploads its own later.
+    info = {
+        "LoadImage": {"input": {"required": {"image": [["old.png"]]}}},
+        "Loader": {"input": {"required": {"name": [["ready.safetensors"]]}}},
+    }
+    graph = {"11": {"class_type": "LoadImage", "inputs": {"image": "moss_a.png"}}}
+    with pytest.raises(ValidationError):
+        validate_nodes(graph, info)
+    validate_nodes(graph, info, {"moss_a.png"})
+    with pytest.raises(ValidationError):
+        validate_nodes(graph, info, {"moss_b.png"})
+    loader = {"1": {"class_type": "Loader", "inputs": {"name": "moss_a.png"}}}
+    with pytest.raises(ValidationError):  # only image loaders get the exemption
+        validate_nodes(loader, info, {"moss_a.png"})
