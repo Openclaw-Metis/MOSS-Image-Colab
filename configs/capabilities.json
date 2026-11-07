@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "capabilities": [
+    {
+      "id": "t2i_layout",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+    },
+    {
+      "id": "quality_50",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+    },
+    {
+      "id": "fast_8",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+    },
+    {
+      "id": "instruction_edit_4",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+    },
+    {
+      "id": "masked_inpaint",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+    },
+    {
+      "id": "vision_reference",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+    },
+    {
+      "id": "color_depth",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+    },
+    {
+      "id": "model_manager",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+    },
+    {
+      "id": "native_2k",
+      "state": "unverified",
+      "evidence": [],
+      "workflow_hash": null,
+      "reason": "依 specs/requirements.md 的 GPU／傳輸與品質 gate 驗證後才可放行"
+    }
+  ]
+}

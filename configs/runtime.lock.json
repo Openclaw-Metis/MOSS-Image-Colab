@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "status": "candidate_not_released",
+  "comfyui": {
+    "repo": "https://github.com/Comfy-Org/ComfyUI.git",
+    "commit": "1332fabfcc507aa7c548cd5152071ed494c207e8",
+    "version": "0.44.0",
+    "requirements_blob_sha": "18984284ba8e3aab30848e2963778f62b32b9a8f"
+  },
+  "python": "3.13.16",
+  "torch": "2.14.1+cu130",
+  "cuda": "13.0",
+  "gradio": "6.31.0",
+  "huggingface_hub": "1.33.0",
+  "transitive_lock": "configs/requirements-colab-py313.lock",
+  "gradio_sources": {
+    "queueing_blob_sha": "2b4a6e698e13ff3c3dee9fc30ab8960b90875f08",
+    "image_editor_blob_sha": "737afbbf7816e6a0c6044f965e2f847a00ba5302"
+  },
+  "release_gates": {
+    "model_text": true,
+    "model_edit": true,
+    "model_vision": true,
+    "transport": true,
+    "clean_replay": true
+  },
+  "cloudflared": {
+    "version": "2026.10.7",
+    "url": "https://github.com/cloudflare/cloudflared/releases/download/2026.10.7/cloudflared-linux-amd64",
+    "sha256": "1f99fb518b83dec2ba8d870a7cc991d82a77e6196295a3d2754ba17ab9f91872"
+  },
+  "probe_status": "stage1_verified_product_not_released"
+}
