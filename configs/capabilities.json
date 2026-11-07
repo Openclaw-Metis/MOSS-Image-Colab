@@ -11,7 +11,7 @@
         "docs/evidence/stage2-batch-a/zh_tw_scoring.json"
       ],
       "workflow_hash": null,
-      "reason": "排版生成 10/10 成功；繁中逐字正確 7/10（未達 8/10，介面已標示限制）"
+      "reason": "排版生成 10/10；繁中逐字正確 7/10，未達 8/10；使用者 2026-11-07 接受限制，介面已提醒"
     },
     {
       "id": "quality_50",
@@ -39,7 +39,7 @@
       "state": "unverified",
       "evidence": [],
       "workflow_hash": null,
-      "reason": "程式完成；GPU 批次 B（AC-08）未執行"
+      "reason": "程式完成；AC-08 已排入 GPU 批次 C 腳本（scripts/batch_c_eval.py），未執行"
     },
     {
       "id": "masked_inpaint",
@@ -55,7 +55,7 @@
       "state": "unverified",
       "evidence": [],
       "workflow_hash": null,
-      "reason": "程式完成；估計圖預覽未做；GPU 批次 C（AC-11）未執行"
+      "reason": "程式完成（含 MoGe 估計圖預覽）；GPU 批次 C（AC-11）未執行"
     },
     {
       "id": "hires",
@@ -71,7 +71,7 @@
       "state": "unverified",
       "evidence": [],
       "workflow_hash": null,
-      "reason": "固定清單下載與 SFT↔Base 切換程式完成；使用者自加 HF LoRA 未實作；GPU 批次 D（AC-13、AC-14）未執行"
+      "reason": "固定清單下載、SFT↔Base 切換、刪除檔案（使用中阻擋）程式完成；使用者自加 HF LoRA 未實作；GPU 批次 D（AC-13、AC-14）未執行"
     },
     {
       "id": "project_archive",

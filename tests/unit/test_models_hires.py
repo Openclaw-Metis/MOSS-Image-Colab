@@ -127,6 +127,31 @@ def test_model_page_downloads_only_pinned_and_switch_needs_idle_and_ready(tmp_pa
         manager.close()
 
 
+def test_model_delete_refuses_files_in_use(tmp_path):
+    manager = ModelManager(ROOT, tmp_path / "models", tmp_path / "data")
+    try:
+        for artifact_id in ("sft_bf16", "base_bf16", "qwen_int8", "edit_sft"):
+            artifact = manager.registry[artifact_id]
+            path = tmp_path / "models" / artifact["filename"]
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"x")
+            artifact["size_bytes"] = 1
+        with pytest.raises(ConflictError, match="使用中的主模型"):
+            manager.delete("sft_bf16", busy=False)
+        with pytest.raises(ConflictError, match="每個工作"):
+            manager.delete("qwen_int8", busy=False)
+        with pytest.raises(ConflictError, match="工作進行中"):
+            manager.delete("base_bf16", busy=True)
+        with pytest.raises(ValidationError):
+            manager.delete("../../etc/passwd", busy=False)
+        assert manager.delete("base_bf16", busy=False) == {"state": "missing"}
+        assert manager.delete("edit_sft", busy=False) == {"state": "missing"}
+        assert (tmp_path / "models" / manager.registry["sft_bf16"]["filename"]).exists()
+        manager.activate("sft_bf16", busy=False)  # still ready, still active
+    finally:
+        manager.close()
+
+
 def test_service_upscales_an_output_in_passes(tmp_path):
     class Engine:
         uploaded = []

@@ -199,6 +199,11 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
     async def download_model(artifact_id: str):
         return await run_in_threadpool(service.models.download, artifact_id)
 
+    @app.delete("/api/models/{artifact_id}")
+    def delete_model(artifact_id: str):
+        with service.lock:
+            return service.models.delete(artifact_id, busy=service.busy())
+
     @app.post("/api/models/activate")
     async def activate_model(request: Request):
         value = await object_body(request)

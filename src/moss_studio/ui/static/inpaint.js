@@ -112,9 +112,9 @@ async function submit(){if(P.submitting)return;
         const mask=await request(`/api/projects/${P.project.id}/assets?kind=mask`,
           {method:"POST",body:blob,headers:{"Content-Type":"image/png"}});
         P.project.revision=mask.project_revision;P.maskAssetId=mask.id;}
-      await P.saver.save();
+      await P.saver.save();const backbone=(await session()).model_artifact_id;
       payload={project_id:P.project.id,client_request_id:crypto.randomUUID(),project_revision:P.project.revision,
-        task:"inpaint",profile_id:"inpaint_v1",model_artifact_id:"sft_bf16",prompt,negative_prompt:$("inpaint-negative").value,
+        task:"inpaint",profile_id:"inpaint_v1",model_artifact_id:backbone,prompt,negative_prompt:$("inpaint-negative").value,
         width:P.source.inpaint_size[0],height:P.source.inpaint_size[1],seed:$("inpaint-seed").value.trim()||null,
         references:[{asset_id:P.source.asset_id,slot:1}],layout:null,mask_asset_id:P.maskAssetId,
         control:{denoise:Number($("inpaint-denoise").value),edge_softness:Number($("inpaint-softness").value),

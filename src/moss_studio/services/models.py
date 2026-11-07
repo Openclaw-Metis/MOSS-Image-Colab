@@ -25,6 +25,9 @@ PUBLIC_FIELDS = (
     "provider_declared_license",
 )
 
+# The text/vision encoder and VAE are loaded by every workflow, whichever backbone is active.
+SHARED_ROLES = {"text_vision_encoder", "vae"}
+
 
 class ModelManager:
     def __init__(self, repository: Path, model_root: Path, data_root: Path, *, fetch=None):
@@ -108,6 +111,27 @@ class ModelManager:
             raise ValidationError("請先下載並校驗此主模型")
         atomic_json(self.settings_path, {**self._settings(), "active_backbone": artifact_id})
         return {"active_backbone": artifact_id}
+
+    def delete(self, artifact_id: str, *, busy: bool) -> dict:
+        """Frees disk space; refuses anything a current or any future job is bound to read."""
+        artifact = self.registry.get(artifact_id)
+        if artifact is None:
+            raise ValidationError("模型清單中沒有此識別碼")
+        if artifact["role"] in SHARED_ROLES:
+            raise ConflictError("E_CONFLICT：每個工作都會用到此檔案，不能刪除")
+        if artifact_id == self.active_backbone():
+            raise ConflictError("E_CONFLICT：使用中的主模型不能刪除，請先切換到其他主模型")
+        if busy:
+            raise ConflictError("E_CONFLICT：工作進行中，完成或取消後再刪除模型")
+        if self.status(artifact_id)["state"] == "downloading":
+            raise ConflictError("E_CONFLICT：下載中，完成後再刪除")
+        path = self.model_root / artifact["filename"]
+        if path.is_symlink():
+            raise ValidationError("模型路徑不是一般檔案，已拒絕")
+        path.unlink(missing_ok=True)
+        with self.lock:
+            self.states.pop(artifact_id, None)
+        return self.status(artifact_id)
 
     def close(self) -> None:
         self.pool.shutdown(wait=False, cancel_futures=True)

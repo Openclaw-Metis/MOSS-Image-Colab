@@ -275,6 +275,11 @@ def compile_control(spec: dict, template: dict, profile: dict, registry: dict, n
             "inputs": {"moge_geometry": ["41", 0], "output": control["geometry"]},
         }
         applied["depth_map"] = ["42", 0]
+        # Saved as an auxiliary output so the user can see the geometry that was applied.
+        graph["46"] = {
+            "class_type": "SaveImage",
+            "inputs": {"images": ["42", 0], "filename_prefix": "moss_studio_control_map"},
+        }
     else:
         graph["43"] = {"class_type": "LoadImage", "inputs": {"image": names["depth"]}}
         applied["depth_map"] = ["43", 0]

@@ -56,7 +56,8 @@ function remove(slot){delete C.assets[slot];
   if(slot==="control-depth"&&$("control-geometry").value==="upload")$("control-geometry").value="mask";
   render();C.saver.schedule();}
 
-function payloadFor(prompt){const base={project_id:C.project.id,client_request_id:crypto.randomUUID(),
+// Colour/depth control is trained on SFT; the experimental vision mode follows the active backbone.
+function payloadFor(prompt,backbone){const base={project_id:C.project.id,client_request_id:crypto.randomUUID(),
   project_revision:C.project.revision,model_artifact_id:"sft_bf16",prompt,negative_prompt:$("control-negative").value,
   seed:$("control-seed").value.trim()||null,layout:null,mask_asset_id:null,lora_stack:[]};
   if(mode()==="vision"){
@@ -65,7 +66,7 @@ function payloadFor(prompt){const base={project_id:C.project.id,client_request_i
     const firstEmpty=slots.findIndex(s=>!s);
     if(firstEmpty!==-1&&firstEmpty<slots.findLastIndex(Boolean))
       throw Error("參考圖請從參考圖 1 開始依序放入，不要中間留空（圖號會寫入提示詞）");
-    return {...base,task:"vision",profile_id:"vision_v1",width:Number($("vision-width").value),
+    return {...base,task:"vision",profile_id:"vision_v1",model_artifact_id:backbone,width:Number($("vision-width").value),
       height:Number($("vision-height").value),references:refs.map((r,i)=>({asset_id:r.asset_id,slot:i+1})),
       control:{image_strength:Number($("vision-strength").value)}};}
   const source=C.assets["control-source"];if(!source)throw Error("請先放入來源圖");
@@ -80,14 +81,17 @@ async function watch(id){const token=++C.pollToken;localStorage.setItem("moss_co
   const job=await pollJob(id,{isCurrent:()=>token===C.pollToken,onUpdate:(job,text)=>{if(job)C.active=job;message(text);}});
   if(job?.status==="succeeded"){const asset=job.record.output_assets[0];const path=`/api/assets/${job.project_id}/${asset}`;
     $("control-result").src=path;$("control-result").hidden=false;$("control-download").href=path;$("control-download").hidden=false;
-    $("control-result-summary").textContent=`種子 ${job.seed} · ${job.record.seconds.toFixed(1)} 秒${job.record.experimental?" · 實驗功能":""} · 尚未匯出專案`;}}
+    $("control-result-summary").textContent=`種子 ${job.seed} · ${job.record.seconds.toFixed(1)} 秒${job.record.experimental?" · 實驗功能":""} · 尚未匯出專案`;
+    const map=(job.record.auxiliary_assets||[])[0];const preview=$("control-map");
+    if(map){preview.src=`/api/assets/${job.project_id}/${map}`;preview.hidden=false;$("control-map-label").hidden=false;}
+    else{preview.hidden=true;$("control-map-label").hidden=true;}}}
 
 async function submit(){if(C.submitting)return;
   if(busy()){message("已有工作進行中；可先準備下一份，或取消目前工作。");return;}
   C.submitting=true;
   try{let payload=C.pending;
     if(!payload){await followProject();const prompt=$("control-prompt").value.trim();
-      if(!prompt)throw Error("請描述要產生的畫面");await C.saver.save();payload=payloadFor(prompt);
+      if(!prompt)throw Error("請描述要產生的畫面");await C.saver.save();payload=payloadFor(prompt,(await session()).model_artifact_id);
       C.pending=payload;localStorage.setItem("moss_control_pending",JSON.stringify(payload));}
     message("正在驗證工作…");const job=await request("/api/jobs",{method:"POST",body:payload});
     C.pending=null;localStorage.removeItem("moss_control_pending");C.active=job;C.project.revision=job.project_revision;watch(job.id);

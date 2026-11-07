@@ -73,25 +73,36 @@ def execute_graph(graph: dict, prompt_id: str, on_event, timeout: float = 900) -
                 raise EngineError("E_ENGINE：工作未成功，輸入與工作紀錄仍保留")
             if history["status"]["status_str"] != "success":
                 raise EngineSettledError("E_ENGINE：引擎已結束此工作，未產生成功結果")
-            images = [
-                image
-                for output in history["outputs"].values()
-                for image in output.get("images", [])
-            ]
-            if len(images) != 1:
+            outputs = history["outputs"]
+            # Node "9" is always the result; other SaveImage nodes (e.g. the estimated
+            # control map) are auxiliary outputs returned after it, in node order.
+            main = outputs.get("9", {}).get("images", [])
+            if len(main) != 1:
                 raise EngineError("E_ENGINE：預期單張輸出，請核對工作流")
-            query = urlencode({key: images[0][key] for key in ("filename", "subfolder", "type")})
-            async with session.get(
-                base + "/view?" + query, timeout=aiohttp.ClientTimeout(total=30)
-            ) as response:
-                if response.status != 200:
-                    raise EngineError("E_ENGINE：輸出讀取失敗")
-                chunks, size = [], 0
-                async for chunk in response.content.iter_chunked(1024**2):
-                    size += len(chunk)
-                    if size > 32 * 1024**2:
-                        raise EngineError("E_ENGINE：輸出超過限制")
-                    chunks.append(chunk)
-                return [b"".join(chunks)]
+            extras = [
+                image
+                for node in sorted(outputs, key=str)
+                if node != "9"
+                for image in outputs[node].get("images", [])
+                if image.get("type") == "output"
+            ]
+            if len(extras) > 4:
+                raise EngineError("E_ENGINE：輔助輸出過多，請核對工作流")
+            files = []
+            for image in [*main, *extras]:
+                query = urlencode({key: image[key] for key in ("filename", "subfolder", "type")})
+                async with session.get(
+                    base + "/view?" + query, timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
+                    if response.status != 200:
+                        raise EngineError("E_ENGINE：輸出讀取失敗")
+                    chunks, size = [], 0
+                    async for chunk in response.content.iter_chunked(1024**2):
+                        size += len(chunk)
+                        if size > 32 * 1024**2:
+                            raise EngineError("E_ENGINE：輸出超過限制")
+                        chunks.append(chunk)
+                    files.append(b"".join(chunks))
+            return files
 
     return asyncio.run(execute())

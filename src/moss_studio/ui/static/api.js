@@ -20,8 +20,9 @@ export async function request(url,options={}){
   return result;
 }
 
+// Re-read on every call: the active backbone can change on the model page while tabs stay open.
 export async function session(){
-  if(!state.session){state.session=await request("/api/session");state.csrf=state.session.csrf;}
+  state.session=await request("/api/session");state.csrf=state.session.csrf;
   return state.session;
 }
 

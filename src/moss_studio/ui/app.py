@@ -59,7 +59,7 @@ def build_ui(service):
             '<p id="moss-runtime" role="status">正在讀取執行環境…</p>'
         )
         with gr.Tabs():
-            with gr.Tab("文生圖與排版"):
+            with gr.Tab("文生圖與排版") as t2i_tab:
                 with gr.Row():
                     with gr.Column(scale=4):
                         prompt = gr.Textbox(
@@ -116,6 +116,8 @@ def build_ui(service):
                         )
             with gr.Tab("多圖指令修圖") as edit_tab:
                 gr.HTML(EDIT_HTML)
+            # Coming back from the model tab: show the backbone that is now active.
+            t2i_tab.select(fn=None, js="async()=>{await window.mossStudio?.refreshSession();}")
             edit_tab.select(fn=None, js=tab_loader(service, "edit.js", "mossEdit"))
             with gr.Tab("筆刷局部重繪") as inpaint_tab:
                 gr.HTML(INPAINT_HTML)

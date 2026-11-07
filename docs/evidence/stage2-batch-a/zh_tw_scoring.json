@@ -20,5 +20,9 @@
     "title_exact": 8,
     "decision_threshold": 8,
     "decision": "未達 ≥8/10：依規格 AC-19，README 與文生圖分頁須明示繁中字形限制，並由使用者決定是否調整目標"
+  },
+  "user_decision": {
+    "date": "2026-11-07",
+    "decision": "使用者接受 7/10 結果與限制，以介面與 README 提醒處理，不另做改善實驗"
   }
 }

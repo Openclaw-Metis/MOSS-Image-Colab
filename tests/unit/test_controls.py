@@ -51,6 +51,8 @@ def test_moge_geometry_feeds_control_with_template_sampling(job_spec):
     assert graph["42"]["inputs"]["output"] == "depth"
     assert graph["40"]["inputs"]["model_name"] == "moge_3_vitg_fp16.safetensors"
     assert graph["53"]["inputs"]["depth_map"] == ["42", 0]
+    assert graph["46"]["class_type"] == "SaveImage"  # estimated map kept as auxiliary output
+    assert graph["46"]["inputs"]["images"] == ["42", 0]
     assert "color_map" not in graph["53"]["inputs"]
     assert graph["53"]["inputs"]["end_percent"] == 0.6
     assert graph["30"]["inputs"]["lora_name"] == "moss_image_color_depth_control.safetensors"
@@ -70,7 +72,7 @@ def test_uploaded_depth_and_colour_maps_replace_estimation(job_spec):
         job_spec, geometry="upload", depth_asset_id=new_id(), color_asset_id=new_id()
     )
     graph = compile_c(spec)
-    assert "40" not in graph and "41" not in graph
+    assert "40" not in graph and "41" not in graph and "46" not in graph
     assert graph["53"]["inputs"]["depth_map"] == ["43", 0]
     assert graph["53"]["inputs"]["color_map"] == ["44", 0]
 
@@ -152,7 +154,10 @@ def png(size, color):
 def test_service_resizes_colour_map_with_flat_regions_and_checks_kinds(tmp_path):
     engine = Engine()
     service = StudioService(
-        ROOT, tmp_path, engine=engine, runner=lambda g, p, e: [png((1360, 768), "white")]
+        ROOT,
+        tmp_path,
+        engine=engine,
+        runner=lambda g, p, e: [png((1360, 768), "white"), png((1360, 768), "gray")],
     )
     try:
         project = service.projects.create("控制")
@@ -190,7 +195,11 @@ def test_service_resizes_colour_map_with_flat_regions_and_checks_kinds(tmp_path)
         while service.get_job(job_id)["status"] not in {"succeeded", "failed"}:
             assert time.monotonic() < deadline
             time.sleep(0.02)
-        assert service.get_job(job_id)["status"] == "succeeded"
+        job = service.get_job(job_id)
+        assert job["status"] == "succeeded"
+        (map_id,) = job["record"]["auxiliary_assets"]
+        assert service.assets.get(project["id"], map_id)["kind"] == "control"
+        assert map_id in service.projects.get(project["id"])["asset_ids"]
         colour_name = next(n for n in engine.uploaded if "_color_" in n)
         uploaded = Image.open(io.BytesIO(engine.uploaded[colour_name]))
         assert uploaded.size == (1360, 768)

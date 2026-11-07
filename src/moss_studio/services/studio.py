@@ -436,9 +436,16 @@ class StudioService:
                 ):
                     raise ValidationError("輸出尺寸與工作快照不同")
                 self._project_update(job["project_id"], asset_id=asset["id"])
+                auxiliary = []
+                for extra in outputs[1:]:
+                    # e.g. the MoGe map the control job actually applied; shown, never the result.
+                    meta = self.assets.import_image(job["project_id"], extra, kind="control")
+                    self._project_update(job["project_id"], asset_id=meta["id"])
+                    auxiliary.append(meta["id"])
                 record = {
                     "job_id": job_id,
                     "output_assets": [asset["id"]],
+                    "auxiliary_assets": auxiliary,
                     "workflow_hash": workflow_hash(graph),
                     "profile": profile,
                     "seconds": time.monotonic() - started,

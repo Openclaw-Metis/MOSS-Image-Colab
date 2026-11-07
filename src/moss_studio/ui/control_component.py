@@ -45,7 +45,7 @@ CONTROL_HTML = f"""
     value="0.6"> <output id="control-end-value">0.60</output></label>
   </div>
   <p style="color:#475569">只會跟隨大致構圖與幾何，不保證姿勢完全一致。
-   估計的輪廓／深度圖目前不另外預覽。</p>
+   自動估計時，結果下方會顯示這次實際套用的輪廓／深度圖。</p>
  </div>
  <div id="control-vision" hidden>
   <p style="background:#fef3c7;padding:8px 12px;border-radius:6px">
@@ -82,6 +82,9 @@ CONTROL_HTML = f"""
     style="width:100%;max-height:650px;object-fit:contain">
   <p id="control-result-summary"></p>
   <a id="control-download" hidden download>下載圖片</a>
+  <p id="control-map-label" hidden>這次實際套用的估計輪廓／深度圖：</p>
+  <img id="control-map" alt="估計的控制圖" hidden
+    style="max-width:360px;max-height:360px;object-fit:contain;border:1px solid #cbd5e1">
  </section>
 </section>
 """

@@ -10,10 +10,13 @@ const active=()=>S.active&&!['succeeded','failed','cancelled','interrupted'].inc
 const message=(text)=>{$("moss-status").textContent=text;};
 const defaults=["","",1024,1024,"",false,"quality50_v1"];
 const profileOf=(id)=>(S.session?.profiles||[]).find(p=>p.id===id);
-function showProfile(id){const p=profileOf(id);if(!p)return;
-  $("moss-profile-summary").textContent=p.negative_prompt
-    ?`SFT bf16 · ${p.steps} 步 Euler · CFG ${p.cfg} · SLG 22 · 開發驗證中`
-    :`SFT bf16 · ${p.steps} 步 · DMD 加速 LoRA · 不使用 CFG 與負向提示詞 · 尚未通過 GPU 驗收`;}
+function showProfile(id){const p=profileOf(id);if(!p)return;const model=S.session.model_artifact_id;
+  const name=model==="base_bf16"?"Base bf16":"SFT bf16";
+  // Submitting would be refused (422); say so before the user writes a prompt.
+  const note=p.allowed_models.includes(model)?"":" · 目前主模型是 Base，此預設只支援 SFT：請到「模型與高解析」切回 SFT";
+  $("moss-profile-summary").textContent=(p.negative_prompt
+    ?`${name} · ${p.steps} 步 Euler · CFG ${p.cfg} · SLG 22 · 開發驗證中`
+    :`SFT bf16 · ${p.steps} 步 · DMD 加速 LoRA · 不使用 CFG 與負向提示詞`)+note;}
 async function request(url,options={}){
   const headers={...(options.headers||{})};
   if(options.body!==undefined&&!(options.body instanceof Blob)){headers["Content-Type"]="application/json";options.body=JSON.stringify(options.body);}
@@ -129,8 +132,10 @@ window.mossStudio={
     const ram=Number.isFinite(runtime.ram_total_bytes)?`${(runtime.ram_total_bytes/1024**3).toFixed(1)} GiB`:"未知";
     $("moss-runtime").textContent=`${gpu?gpu.name:"未偵測到 GPU"} · 系統 RAM ${ram} · 開發驗證中`;
     let project;const id=localStorage.getItem("moss_studio_project");
-    if(id)project=await request("/api/projects/"+encodeURIComponent(id));
-    else{project=await request("/api/projects",{method:"POST",body:{name:"未命名創作"}});localStorage.setItem("moss_studio_project",project.id);}
+    // A remembered project can be gone (deleted, or a fresh data root on the same origin).
+    if(id)try{project=await request("/api/projects/"+encodeURIComponent(id));}
+      catch(error){if(error.status!==404)throw error;localStorage.removeItem("moss_studio_project");}
+    if(!project){project=await request("/api/projects",{method:"POST",body:{name:"未命名創作"}});localStorage.setItem("moss_studio_project",project.id);}
     const values=await loadProject(project);
     const pending=localStorage.getItem("moss_studio_pending");
     if(pending){S.pending=JSON.parse(pending);
@@ -140,6 +145,8 @@ window.mossStudio={
     const job=localStorage.getItem("moss_studio_job");if(job)poll(job);return values;
   },
   touch(values){if(!S.canvas||!S.project)return;setForm(values);if(values[5])showView("layout");scheduleSave();},
+  async refreshSession(){if(!S.session)return;S.session=await request("/api/session");
+    showProfile((S.form||defaults)[6]);},
   async submit(values){if(S.submitting)return;
     if(active()){message("已有工作進行中；可編輯下一份草稿，或取消目前工作。");return;}
     S.submitting=true;
@@ -147,6 +154,8 @@ window.mossStudio={
       if(!payload){setForm(values);
       if(!$("moss-confirm-size").hidden)throw Error("請先確認尺寸變更，再產生圖片");
       clearTimeout(S.timer);await save();
+      // The backbone may have been switched on the model tab since this page loaded.
+      S.session=await request("/api/session");
       const [prompt,negative,width,height,seed,layout,profile]=values;
       if(profileOf(profile)&&!profileOf(profile).negative_prompt&&negative.trim())
         throw Error("加速 8 步不使用負向提示詞；請清空進階設定中的負向提示詞，或改用精細 50 步");

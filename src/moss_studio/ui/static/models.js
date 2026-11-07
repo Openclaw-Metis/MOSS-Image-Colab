@@ -4,6 +4,7 @@ const ROLE={backbone:"主模型",text_vision_encoder:"文字／視覺編碼器",
   control_lora:"控制 LoRA",speed_lora:"8 步加速 LoRA",geometry_estimator:"幾何估計（MoGe 3）"};
 const STATE={ready:"已下載並校驗",missing:"未下載",downloading:"下載中…",failed:"下載失敗"};
 const M={bound:null,timer:null,project:null,outputs:[],active:null,pollToken:0,submitting:false,pending:null};
+const SHARED=new Set(["text_vision_encoder","vae"]);
 const gib=(b)=>(b/1024**3).toFixed(2)+" GiB";
 
 async function refreshModels(){
@@ -20,12 +21,16 @@ async function refreshModels(){
       if(m.role==="backbone"&&m.state==="ready"&&!m.active){const b=document.createElement("button");b.type="button";
         b.textContent="設為使用中";b.disabled=busy;b.title=busy?"工作進行中不可切換":"";
         b.onclick=()=>act("/api/models/activate",{artifact_id:m.id},`已切換主模型為 ${m.id}；新工作會使用它`);actions.append(b);}
+      if(m.state==="ready"&&!m.active&&!SHARED.has(m.role)){const b=document.createElement("button");b.type="button";
+        b.textContent="刪除檔案";b.disabled=busy;b.title=busy?"工作進行中不可刪除":"釋放磁碟空間，之後可重新下載";
+        b.onclick=()=>{if(confirm(`刪除 ${m.id}（${gib(m.size_bytes)}）？之後需要時可重新下載。`))
+          act(`/api/models/${m.id}`,null,`已刪除 ${m.id}`,"DELETE");};actions.append(b);}
       row.append(actions);body.append(row);}
-    $("models-status").textContent=busy?"有工作進行中：可下載，但不能切換主模型。":"模型清單已更新。";
+    $("models-status").textContent=busy?"有工作進行中：可下載，但不能切換主模型或刪除檔案。":"模型清單已更新。";
     clearTimeout(M.timer);if(models.some(m=>m.state==="downloading"))M.timer=setTimeout(refreshModels,3000);
   }catch(error){$("models-status").textContent=error.message;}}
 
-async function act(url,body,done){try{await request(url,{method:"POST",body});$("models-status").textContent=done;}
+async function act(url,body,done,method="POST"){try{await request(url,body?{method,body}:{method});$("models-status").textContent=done;}
   catch(error){$("models-status").textContent=error.message;}await refreshModels();}
 
 function targetSize(){const option=$("hires-source").selectedOptions[0];if(!option)return null;
