@@ -30,11 +30,25 @@ if os.name == "nt":  # pragma: no cover - exercised only on Windows workstations
         os.lseek(fd, 0, os.SEEK_SET)
         msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
 
+    def _sharing_retry(action):
+        # Windows refuses to open a file that another thread is replacing, and refuses to
+        # replace a file another thread has open (PermissionError); POSIX allows both.
+        # Retry briefly so concurrent readers and atomic writers behave like on Linux.
+        for _ in range(200):
+            try:
+                return action()
+            except PermissionError:
+                time.sleep(0.005)
+        return action()
+
     def _open_nofollow(path: Path, flags: int, mode: int = 0o600) -> int:
         # Windows has no O_NOFOLLOW; refuse links explicitly before opening.
         if Path(path).is_symlink():
             raise ValidationError("拒絕符號連結檔案")
-        return os.open(path, flags | getattr(os, "O_BINARY", 0), mode)
+        return _sharing_retry(lambda: os.open(path, flags | getattr(os, "O_BINARY", 0), mode))
+
+    def _replace(source, target) -> None:
+        _sharing_retry(lambda: os.replace(source, target))
 
     def _sync_directory(path: Path) -> None:
         # Directories cannot be opened for fsync on Windows; os.replace is already atomic.
@@ -51,6 +65,9 @@ else:
 
     def _open_nofollow(path: Path, flags: int, mode: int = 0o600) -> int:
         return os.open(path, flags | os.O_NOFOLLOW, mode)
+
+    def _replace(source, target) -> None:
+        os.replace(source, target)
 
     def _sync_directory(path: Path) -> None:
         parent_fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
@@ -88,7 +105,7 @@ def atomic_json(path: Path, value: dict) -> None:
             stream.write(data)
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(temp, path)
+        _replace(temp, path)
         _sync_directory(path.parent)
     finally:
         Path(temp).unlink(missing_ok=True)
