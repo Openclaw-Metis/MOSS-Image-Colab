@@ -15,6 +15,8 @@ inpaint 柔邊外逐像素保留原圖由後端合成保證；遮罩在工作尺
 自加 HF LoRA：使用者給 repo＋40 碼 commit＋路徑，向 Hub 匿名查 paths-info 取 LFS SHA256 與大小鎖定（≤2 GiB、最多 20 個），
 存 data_root/user_loras.json（載入時重驗），檔名固定 loras/user_<sha12>.safetensors；只有宣告 user_loras 的預設（quality50）可疊加，最多 2 個、強度 0～2。
 介面上「已通過／尚未通過 GPU 驗收」一律取自 capabilities.json，不在前端寫死。
+登入：保留密碼（通道網址公開，必須認證），另加一次性登入連結：Notebook 第 4 格以密碼在 loopback 呼叫 POST /login-link，
+取得 30 分鐘、單次有效的 token（記憶體內、最多 5 條未用，工作台重啟即全部失效）；GET /login?token= 兌換成同一個 session cookie。
 模型刪除：使用中主模型、共用編碼器／VAE、工作進行中、下載中一律 409；工作快照自帶 model_artifact_id，伺服器不強制等於使用中主模型。
 批次 C 素材用 fast8 在同一工作階段生成再以 kind=input 上傳（無真人照片、無授權問題）；AC-09 柔邊外逐像素由腳本自動量測，其餘人工評分。
 
