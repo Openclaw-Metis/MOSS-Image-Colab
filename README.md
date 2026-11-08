@@ -66,7 +66,7 @@
 ```mermaid
 flowchart LR
   B["你的瀏覽器"] -->|"HTTPS"| T["Cloudflare Quick Tunnel"]
-  T --> W["工作台：FastAPI + Gradio 外殼<br/>登入、CSRF、HTTP 輪詢"]
+  T --> W["工作台<br/>FastAPI + Gradio"]
   W -->|"127.0.0.1"| C["ComfyUI 無頭引擎"]
   C --> G["L4 GPU"]
 ```
@@ -78,14 +78,24 @@ flowchart LR
 
 ## 模型來源
 
-| 模型 | 大小 | 來源 | 提供者宣告的授權 |
-|---|---|---|---|
-| SFT／Base 主模型、Qwen3.5 int8 編碼器、VAE、修圖與色彩／深度 LoRA | 主模型各約 10.2 GB | [Comfy-Org/MOSS-Image](https://huggingface.co/Comfy-Org/MOSS-Image/tree/2929efe3cdd506c0a430bcfca70a9a8d805cc095) | Apache-2.0 |
-| 加速 8 步 LoRA | 1.19 GB | [lodestones/MOSS-Image-SFT-8-steps-dmd](https://huggingface.co/lodestones/MOSS-Image-SFT-8-steps-dmd/tree/f95df83b5e90ae91ea412434b3f9b7f1c8c6314f) | Apache-2.0 |
-| MoGe 3 幾何估計 | 2.50 GB | [Comfy-Org/MoGe](https://huggingface.co/Comfy-Org/MoGe/tree/1484985258ba7ef45c314144fcf0e90924ffbf44) | MIT |
+| 模型 | 大小 | 第 2 格下載 |
+|---|---|---|
+| SFT 主模型 | 10.16 GB | 是 |
+| Qwen3.5 9B int8 文字／視覺編碼器 | 9.75 GB | 是 |
+| VAE（flux2-vae_small） | 0.25 GB | 是 |
+| 加速 8 步 LoRA | 1.19 GB | 是（可取消勾選） |
+| 修圖 LoRA | 0.30 GB | 是（可取消勾選） |
+| 色彩／深度控制 LoRA | 0.31 GB | 是（可取消勾選） |
+| MoGe 3 幾何估計 | 2.50 GB | 是（可取消勾選） |
+| Base 主模型 | 10.16 GB | 否；要切換主模型時到模型頁下載 |
 
-第 2 格預設下載 Base 以外的全部模型；Base 只在要切換主模型時到模型頁下載。授權以提供者的模型卡為準，用途請自行確認。
-模型權重、使用者素材與憑證都不進版控。
+來源都鎖定 commit，下載後校驗 SHA256：
+
+- [Comfy-Org/MOSS-Image](https://huggingface.co/Comfy-Org/MOSS-Image/tree/2929efe3cdd506c0a430bcfca70a9a8d805cc095)：主模型、編碼器、VAE、修圖與控制 LoRA，宣告 Apache-2.0
+- [lodestones/MOSS-Image-SFT-8-steps-dmd](https://huggingface.co/lodestones/MOSS-Image-SFT-8-steps-dmd/tree/f95df83b5e90ae91ea412434b3f9b7f1c8c6314f)：加速 8 步 LoRA，宣告 Apache-2.0
+- [Comfy-Org/MoGe](https://huggingface.co/Comfy-Org/MoGe/tree/1484985258ba7ef45c314144fcf0e90924ffbf44)：MoGe 3，宣告 MIT
+
+授權以提供者的模型卡為準，用途請自行確認。模型權重、使用者素材與憑證都不進版控。
 
 上游參考：[MOSS-Image 使用指南](https://github.com/OpenMOSS/MOSS-Image/blob/main/USERGUIDE.md)、
 [ComfyUI MOSS-Image 文件](https://github.com/Comfy-Org/docs/blob/main/tutorials/image/moss-image/moss-image.mdx)。
