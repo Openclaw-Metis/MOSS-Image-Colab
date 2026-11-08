@@ -19,7 +19,8 @@ ComfyUI 0.44.0 commit `1332fabfcc507aa7c548cd5152071ed494c207e8`；Gradio 6.31.0
 
 Colab 部分映像無法使用 venv 的 ensurepip；bootstrap 用 `with_pip=False` 與
 `system_site_packages=True`，沿用 Colab 的 pip/PyTorch，但其他安裝仍落在工具 venv。
-這是有明確基底映像條件的候選設定，完整 transitive lock 與乾淨重演尚未放行。
+這是有明確基底映像條件的候選設定，完整 transitive lock 尚未放行；
+2026-11-08 使用者依 README 在乾淨 L4 重演，回報安裝與五分頁都正常（[Stage 10](stages/stage10.md)）。
 
 ## 固定來源
 
