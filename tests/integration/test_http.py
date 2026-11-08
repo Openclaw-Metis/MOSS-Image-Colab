@@ -83,6 +83,35 @@ def test_unauthenticated_boundary_covers_api_assets_and_gradio(http_studio, path
     assert client.get(path).status_code == 401
 
 
+def test_one_time_login_link(http_studio, monkeypatch):
+    client, _ = http_studio
+    password = "test-only-password-" + "x" * 32
+    assert client.post("/login-link", data={"password": "wrong"}).status_code == 401
+    minted = client.post("/login-link", data={"password": password}).json()
+    assert minted["expires_in"] == 1800 and minted["path"].startswith("/login?token=")
+    assert client.get("/api/session").status_code == 401
+    redeemed = client.get(minted["path"], follow_redirects=False)
+    assert redeemed.status_code == 303 and redeemed.headers["location"] == "/studio/"
+    assert (
+        "HttpOnly" in redeemed.headers["set-cookie"] and "Secure" in redeemed.headers["set-cookie"]
+    )
+    assert redeemed.headers["referrer-policy"] == "no-referrer"
+    assert client.get("/api/session").status_code == 200
+    client.cookies.clear()
+    assert client.get(minted["path"], follow_redirects=False).status_code == 401  # single use
+    assert client.get("/login?token=made-up", follow_redirects=False).status_code == 401
+    # Expired links do not work, and at most five unredeemed links are alive at once.
+    monkeypatch.setattr("moss_studio.adapters.http.time.monotonic", lambda: time.time() + 10**6)
+    stale = client.post("/login-link", data={"password": password}).json()["path"]
+    monkeypatch.setattr("moss_studio.adapters.http.time.monotonic", lambda: time.time() + 10**9)
+    assert client.get(stale, follow_redirects=False).status_code == 401
+    paths = [
+        client.post("/login-link", data={"password": password}).json()["path"] for _ in range(6)
+    ]
+    assert client.get(paths[0], follow_redirects=False).status_code == 401
+    assert client.get(paths[-1], follow_redirects=False).status_code == 303
+
+
 def test_csrf_origin_invalid_json_and_unicode_password(http_studio):
     client, _ = http_studio
     assert client.post("/login", data={"password": "非本次密碼"}).status_code == 401

@@ -3,6 +3,8 @@
 import hmac
 import json
 import secrets
+import threading
+import time
 import zipfile
 
 import gradio as gr
@@ -48,18 +50,39 @@ def wire_job(job: dict) -> dict:
     return result
 
 
+LINK_TTL_SECONDS = 1800
+MAX_LIVE_LINKS = 5
+
+
 def create_http_app(service, password: str, ui_factory) -> FastAPI:
     if not isinstance(password, str) or len(password) < 24:
         raise ValidationError("入口需要高熵的單次密碼")
     session_token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    # One-time login links: token → monotonic expiry. In memory only, so an app restart
+    # invalidates every link; each token is removed the moment it is redeemed.
+    login_links: dict[str, float] = {}
+    links_lock = threading.Lock()
 
     def authenticated(request):
         return hmac.compare_digest(request.cookies.get("moss_session", ""), session_token)
 
+    def password_matches(candidate) -> bool:
+        return isinstance(candidate, str) and hmac.compare_digest(
+            candidate.encode(), password.encode()
+        )
+
+    def signed_in() -> RedirectResponse:
+        response = RedirectResponse("/studio/", status_code=303)
+        response.set_cookie(
+            "moss_session", session_token, httponly=True, secure=True, samesite="lax", max_age=36000
+        )
+        return response
+
     @app.middleware("http")
     async def boundary(request, call_next):
-        if request.url.path not in {"/login", "/favicon.ico"} and not authenticated(request):
+        public = {"/login", "/login-link", "/favicon.ico"}
+        if request.url.path not in public and not authenticated(request):
             if request.url.path in {"/", "/studio", "/studio/"}:
                 return RedirectResponse("/login", status_code=303)
             return JSONResponse({"code": "E_AUTH", "message": "請先登入"}, status_code=401)
@@ -106,24 +129,46 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
         )
 
     @app.get("/login")
-    def login_page():
-        return HTMLResponse(LOGIN)
+    def login_page(token: str | None = None):
+        if token is None:
+            return HTMLResponse(LOGIN)
+        now, expiry = time.monotonic(), None
+        with links_lock:
+            for known in list(login_links):
+                if login_links[known] < now:
+                    del login_links[known]
+                elif hmac.compare_digest(known.encode(), token.encode()):
+                    expiry = login_links.pop(known)  # single use: gone before the cookie is set
+        if expiry is None:
+            notice = "<p>登入連結已用過或過期。請貼上密碼，或在 Notebook 重新執行第 4 格。</p>"
+            return HTMLResponse(LOGIN + notice, status_code=401)
+        return signed_in()
+
+    @app.post("/login-link")
+    async def login_link(request: Request):
+        """Mints a one-time link for whoever already holds the password (the notebook)."""
+        if len(await request.body()) > 4096:
+            raise HTTPException(413)
+        form = await request.form()
+        if not password_matches(form.get("password", "")):
+            return JSONResponse({"code": "E_AUTH", "message": "密碼不符"}, status_code=401)
+        token, now = secrets.token_urlsafe(32), time.monotonic()
+        with links_lock:
+            for known in [k for k, expiry in login_links.items() if expiry < now]:
+                del login_links[known]
+            while len(login_links) >= MAX_LIVE_LINKS:  # oldest unredeemed link goes first
+                del login_links[min(login_links, key=login_links.get)]
+            login_links[token] = now + LINK_TTL_SECONDS
+        return {"path": f"/login?token={token}", "expires_in": LINK_TTL_SECONDS}
 
     @app.post("/login")
     async def login(request: Request):
         if len(await request.body()) > 4096:
             raise HTTPException(413)
         form = await request.form()
-        candidate = form.get("password", "")
-        if not isinstance(candidate, str) or not hmac.compare_digest(
-            candidate.encode(), password.encode()
-        ):
+        if not password_matches(form.get("password", "")):
             return HTMLResponse(LOGIN + "<p>密碼不符。</p>", status_code=401)
-        response = RedirectResponse("/studio/", status_code=303)
-        response.set_cookie(
-            "moss_session", session_token, httponly=True, secure=True, samesite="lax", max_age=36000
-        )
-        return response
+        return signed_in()
 
     @app.get("/")
     def index():
@@ -147,6 +192,7 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
                 for profile in service.profiles.values()
             ],
             "model_artifact_id": service.models.active_backbone(),
+            "capabilities": service.capabilities,
             "release_status": "development",
         }
 
@@ -198,6 +244,22 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
     @app.post("/api/models/{artifact_id}/download")
     async def download_model(artifact_id: str):
         return await run_in_threadpool(service.models.download, artifact_id)
+
+    @app.delete("/api/models/{artifact_id}")
+    def delete_model(artifact_id: str):
+        with service.lock:
+            return service.models.delete(artifact_id, busy=service.busy())
+
+    @app.post("/api/models/user-loras")
+    async def add_user_lora(request: Request):
+        value = await object_body(request)
+        # Network lookup of the Hub's pinned hash and size; the download is a separate step.
+        return await run_in_threadpool(
+            service.models.add_user_lora,
+            value.get("repo"),
+            value.get("revision"),
+            value.get("path"),
+        )
 
     @app.post("/api/models/activate")
     async def activate_model(request: Request):

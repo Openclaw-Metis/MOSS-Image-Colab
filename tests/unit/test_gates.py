@@ -1,10 +1,13 @@
+import json
+import re
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
 from moss_studio.adapters.transport import CHECKS, TransportEvidence
 from moss_studio.domain.contracts import ValidationError
-from moss_studio.services.capabilities import artifact_gaps, require_released
+from moss_studio.services.capabilities import artifact_gaps, load_capabilities, require_released
 from moss_studio.services.resources import l4_preflight
 
 
@@ -29,6 +32,24 @@ def test_unverified_capability_and_artifact_cannot_release():
     require_released(
         {"state": "released", "evidence": ["actual-report"], "workflow_hash": "a" * 64}
     )
+
+
+def test_capability_file_drives_ui_wording_and_rejects_unknown_states(tmp_path):
+    root = Path(__file__).resolve().parents[2]
+    capabilities = load_capabilities(root)
+    assert capabilities["fast_8"]["state"] == "verified"
+    assert capabilities["native_2048"]["class"] == "experimental"
+    # Every id a tab script asks for must exist, or the UI would say "驗收狀態未知".
+    scripts = "".join(
+        p.read_text("utf-8") for p in (root / "src/moss_studio/ui/static").glob("*.js")
+    )
+    wanted = set(re.findall(r'capabilityLabel\([^,]+,"([a-z0-9_]+)"\)', scripts))
+    assert len(wanted) >= 9 and wanted <= set(capabilities), wanted - set(capabilities)
+    (tmp_path / "configs").mkdir()
+    bad = {"capabilities": [{"id": "x", "class": "required", "state": "great", "reason": ""}]}
+    (tmp_path / "configs/capabilities.json").write_text(json.dumps(bad), "utf-8")
+    with pytest.raises(ValidationError):
+        load_capabilities(tmp_path)
 
 
 def test_l4_preflight_uses_actual_resources():

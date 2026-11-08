@@ -12,5 +12,6 @@
   "lora_stack": [],
   "allowed_models": ["sft_bf16", "base_bf16"],
   "negative_prompt": true,
+  "user_loras": {"max": 2, "strength": {"min": 0.0, "max": 2.0}},
   "state": "probing"
 }

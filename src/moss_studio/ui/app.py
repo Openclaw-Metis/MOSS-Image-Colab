@@ -1,6 +1,7 @@
 """Gradio workbench; client-only callbacks use the authenticated HTTP adapter."""
 
 import hashlib
+import json
 import os
 from pathlib import Path
 
@@ -22,6 +23,21 @@ PROJECT_MENU_HTML = """
   專案檔含素材、遮罩、排版與作品；不含模型與密碼。匯入會建立新專案，不覆蓋現有專案。</p>
 </div>
 """
+
+
+# One-click sizes, about 1 MP like the model's usual working size. Every side is a multiple of
+# 16 because EmptyFlux2LatentImage allocates height // 16 × width // 16 latent cells; 4:3, 3:2 and
+# 16:9 are exact ratios. The sliders stay for any other size.
+ASPECT_PRESETS = {
+    "1:1": (1024, 1024),
+    "4:3": (1152, 864),
+    "3:4": (864, 1152),
+    "3:2": (1248, 832),
+    "2:3": (832, 1248),
+    "16:9": (1280, 720),
+    "9:16": (720, 1280),
+}
+ASPECT_CHOICES = [(key, key) for key in ASPECT_PRESETS] + [("自訂", "custom")]
 
 
 # AC-19 batch A (2026-11-07): 7/10 zh-TW layouts fully correct, below the 8/10 gate. The spec
@@ -59,7 +75,7 @@ def build_ui(service):
             '<p id="moss-runtime" role="status">正在讀取執行環境…</p>'
         )
         with gr.Tabs():
-            with gr.Tab("文生圖與排版"):
+            with gr.Tab("文生圖與排版") as t2i_tab:
                 with gr.Row():
                     with gr.Column(scale=4):
                         prompt = gr.Textbox(
@@ -68,19 +84,25 @@ def build_ui(service):
                             placeholder="例如：米白色山景旅遊海報，標題為「山間慢旅」。",
                         )
                         layout_on = gr.Checkbox(label="啟用畫框排版", value=False)
+                        aspect = gr.Radio(
+                            choices=ASPECT_CHOICES,
+                            value="1:1",
+                            label="畫面比例（點選即套用，約 1 MP；精確像素見下方寬高）",
+                        )
                         with gr.Row():
                             width = gr.Slider(512, 4096, value=1024, step=16, label="寬度")
                             height = gr.Slider(512, 4096, value=1024, step=16, label="高度")
-                        gr.HTML(
-                            '<button id="moss-confirm-size" type="button" hidden>'
-                            "確認尺寸變更（框選位置依比例重算）</button>"
+                        gr.Markdown(
+                            "寬高以 16 像素為單位：模型每 16×16 像素算一格，"
+                            "其他數字會被引擎無條件捨去，成品就不是你設定的大小。"
                         )
                         profile = gr.Radio(
                             choices=[("精細 50 步", "quality50_v1"), ("加速 8 步", "fast8_v1")],
                             value="quality50_v1",
                             label="繪製方式",
                         )
-                        gr.HTML('<p id="moss-profile-summary">SFT bf16 · 開發驗證中</p>')
+                        gr.HTML('<p id="moss-profile-summary">SFT bf16</p>')
+                        gr.HTML('<div id="moss-lora" hidden></div>')
                         gr.HTML(ZH_TW_NOTICE)
                         with gr.Accordion("進階設定", open=False):
                             negative = gr.Textbox(label="負向提示詞", value="")
@@ -116,6 +138,8 @@ def build_ui(service):
                         )
             with gr.Tab("多圖指令修圖") as edit_tab:
                 gr.HTML(EDIT_HTML)
+            # Coming back from the model tab: show the backbone that is now active.
+            t2i_tab.select(fn=None, js="async()=>{await window.mossStudio?.refreshSession();}")
             edit_tab.select(fn=None, js=tab_loader(service, "edit.js", "mossEdit"))
             with gr.Tab("筆刷局部重繪") as inpaint_tab:
                 gr.HTML(INPAINT_HTML)
@@ -127,21 +151,44 @@ def build_ui(service):
                 gr.HTML(MODELS_HTML)
             models_tab.select(fn=None, js=tab_loader(service, "models.js", "mossModels"))
         form = [prompt, negative, width, height, seed, layout_on, profile]
+        presets = json.dumps({key: list(size) for key, size in ASPECT_PRESETS.items()})
+        with_aspect = f"[...v,window.mossStudio.aspectOf(v,{presets})]"
         demo.load(
             fn=None,
-            outputs=form,
+            outputs=[*form, aspect],
             js=(
                 f"async()=>{{await import('/static/studio.js?v={version}');"
-                "return await window.mossStudio.init();}"
+                f"const v=await window.mossStudio.init();return {with_aspect};}}"
             ),
         )
         for component in form:
-            component.input(fn=None, inputs=form, js="(...values)=>window.mossStudio.touch(values)")
+            if component is width or component is height:
+                # Applied at once (no confirm step); the ratio picker follows the sliders.
+                component.input(
+                    fn=None,
+                    inputs=form,
+                    outputs=aspect,
+                    js=f"(...v)=>{{window.mossStudio.touch(v);return {with_aspect}.at(-1);}}",
+                )
+            else:
+                component.input(
+                    fn=None, inputs=form, js="(...values)=>window.mossStudio.touch(values)"
+                )
+        aspect.input(
+            fn=None,
+            inputs=[aspect, *form],
+            outputs=[width, height],
+            js=f"(a,...v)=>window.mossStudio.applyAspect(a,v,{presets})",
+        )
         generate.click(
             fn=None, inputs=form, js="async(...values)=>{await window.mossStudio.submit(values);}"
         )
         cancel.click(fn=None, js="async()=>{await window.mossStudio.cancel();}")
-        new_project.click(fn=None, outputs=form, js="async()=>await window.mossStudio.newProject()")
+        new_project.click(
+            fn=None,
+            outputs=[*form, aspect],
+            js=f"async()=>{{const v=await window.mossStudio.newProject();return {with_aspect};}}",
+        )
     return demo
 
 

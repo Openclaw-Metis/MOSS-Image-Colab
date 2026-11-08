@@ -1,0 +1,93 @@
+{
+  "exported_at": "2026-11-08T00:09:24.663264+00:00",
+  "project_id": "2d0db593-6f61-4932-b4a8-ece3543c3ee6",
+  "archive_sha256": "1447ed3197a6388a20c1aab5f786f23fcfaccc4c2bffa835b8359a29f37c9fab",
+  "archive_bytes": 1684358,
+  "name": "AC-15 匯出入",
+  "drafts": {
+    "control": {},
+    "edit": {},
+    "inpaint": {
+      "denoise": 0.8,
+      "edge_softness": 0.15,
+      "mask_asset_id": "e04be7f8-ab50-42bf-9aa0-393f327ef480",
+      "negative": "",
+      "prompt": "一隻白色小貓坐在草地上",
+      "seed": "84001",
+      "source": {
+        "asset_id": "e1b5623f-9a68-4d4c-8740-02906ae8cd95",
+        "height": 1024,
+        "inpaint_size": [
+          1024,
+          1024
+        ],
+        "width": 1024
+      }
+    },
+    "models": {},
+    "t2i": {
+      "height": 1024,
+      "layout_caption": null,
+      "layout_enabled": true,
+      "layout_items": [
+        {
+          "caption": "置中的深藍色粗體大標題",
+          "id": "e73c396b-0952-4608-a1ab-829fdd115e92",
+          "label": "text",
+          "normalized_bbox": [
+            0.12,
+            0.08,
+            0.88,
+            0.22
+          ],
+          "text": "山間慢旅",
+          "z_order": 0
+        },
+        {
+          "caption": "扁平風格的藍色山脈與小樹插畫",
+          "id": "6a50718b-2caa-4a0e-9ee5-be374d921c43",
+          "label": "object",
+          "normalized_bbox": [
+            0.05,
+            0.35,
+            0.95,
+            0.95
+          ],
+          "z_order": 1
+        }
+      ],
+      "layout_meta": null,
+      "negative": "",
+      "profile_id": "fast8_v1",
+      "prompt": "米白色背景的極簡旅遊海報，上方深藍色大標題，下半部是藍色山脈插畫",
+      "seed": "61001",
+      "width": 1024
+    }
+  },
+  "assets": {
+    "ecc7603a-3798-4879-a76a-531dae2d84de": {
+      "kind": "output",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "89cefaca2382d8ca87c56eec9ceae9c4557ab7a79ebf2ad0c180431764cba93b"
+    },
+    "e1b5623f-9a68-4d4c-8740-02906ae8cd95": {
+      "kind": "input",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "89cefaca2382d8ca87c56eec9ceae9c4557ab7a79ebf2ad0c180431764cba93b"
+    },
+    "e04be7f8-ab50-42bf-9aa0-393f327ef480": {
+      "kind": "mask",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "581f83d69e10467687fe9949ec4050508ed6fc7951be969dd15f58adcccb97d6"
+    },
+    "d5abb23c-dbee-479b-b4de-d24a2525c633": {
+      "kind": "output",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "0e490658408c5b2d095b2de54ea088fc27bb6c6f1cdcfcb587d8b3a108e0a572"
+    }
+  }
+}

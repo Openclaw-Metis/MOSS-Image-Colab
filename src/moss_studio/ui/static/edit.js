@@ -1,4 +1,4 @@
-import {request,session,currentProject,pollJob,draftSaver,TERMINAL} from "/static/api.js";
+import {request,session,currentProject,pollJob,draftSaver,TERMINAL,capabilityLabel} from "/static/api.js";
 const $=(id)=>document.getElementById(id);
 const SLOTS=[1,2,3,4];
 const E={project:null,slots:[null,null,null,null],active:null,pollToken:0,submitting:false,
@@ -18,6 +18,7 @@ function render(){
   $("edit-size").textContent=main?`輸出尺寸：${main.edit_size[0]}×${main.edit_size[1]}（跟隨圖 1，約 1 MP）`
     :"輸出尺寸：放入圖 1 後顯示";
   $("edit-renumber-box").hidden=true;
+  $("edit-experimental").hidden=E.slots.filter(Boolean).length<3;
 }
 
 async function loadProject(project){E.project=project;const d=project.drafts.edit||{};
@@ -103,6 +104,7 @@ window.mossEdit={
     const root=$("edit-root");if(!root)return;
     if(E.bound===root){await followProject().catch(e=>message(e.message));return;}
     E.bound=root;const s=await session();E.profile=s.profiles.find(p=>p.id==="edit_v1")||{};
+    $("edit-summary").textContent=`SFT bf16 · Edit LoRA · ${E.profile.steps} 步 · CFG ${E.profile.cfg} · ${capabilityLabel(s,"instruction_edit_2")}`;
     E.saver=draftSaver("edit",{getProject:()=>E.project,capture,onState:(t)=>{$("edit-save-state").textContent=t;}});
     for(const i of SLOTS){$(`edit-file-${i}`).onchange=(e)=>upload(i,e.target.files[0]);
       $(`edit-remove-${i}`).onclick=()=>remove(i);$(`edit-role-${i}`).oninput=()=>E.saver.schedule();}

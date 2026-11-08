@@ -1,4 +1,4 @@
-import {request,session,currentProject,pollJob,draftSaver,TERMINAL} from "/static/api.js";
+import {request,session,currentProject,pollJob,draftSaver,TERMINAL,capabilityLabel} from "/static/api.js";
 const $=(id)=>document.getElementById(id);
 // The mask canvas lives at the working size (≈1 MP) so undo snapshots stay bounded.
 const P={project:null,source:null,mask:null,ctx:null,undo:[],mode:"brush",last:null,active:null,
@@ -50,7 +50,7 @@ async function showSource(){const img=$("inpaint-source");
 async function loadProject(project){P.project=project;const d=project.drafts.inpaint||{};
   P.source=d.source||null;P.maskAssetId=d.mask_asset_id||null;
   $("inpaint-prompt").value=d.prompt||"";$("inpaint-negative").value=d.negative||"";$("inpaint-seed").value=d.seed||"";
-  $("inpaint-denoise").value=d.denoise??0.65;$("inpaint-softness").value=d.edge_softness??0.15;
+  $("inpaint-denoise").value=d.denoise??1;$("inpaint-softness").value=d.edge_softness??0.15;
   P.saver.setSavedHash(project.draft_hashes.inpaint);await showSource();featherText();}
 
 async function followProject(){const id=localStorage.getItem("moss_studio_project");
@@ -112,9 +112,9 @@ async function submit(){if(P.submitting)return;
         const mask=await request(`/api/projects/${P.project.id}/assets?kind=mask`,
           {method:"POST",body:blob,headers:{"Content-Type":"image/png"}});
         P.project.revision=mask.project_revision;P.maskAssetId=mask.id;}
-      await P.saver.save();
+      await P.saver.save();const backbone=(await session()).model_artifact_id;
       payload={project_id:P.project.id,client_request_id:crypto.randomUUID(),project_revision:P.project.revision,
-        task:"inpaint",profile_id:"inpaint_v1",model_artifact_id:"sft_bf16",prompt,negative_prompt:$("inpaint-negative").value,
+        task:"inpaint",profile_id:"inpaint_v1",model_artifact_id:backbone,prompt,negative_prompt:$("inpaint-negative").value,
         width:P.source.inpaint_size[0],height:P.source.inpaint_size[1],seed:$("inpaint-seed").value.trim()||null,
         references:[{asset_id:P.source.asset_id,slot:1}],layout:null,mask_asset_id:P.maskAssetId,
         control:{denoise:Number($("inpaint-denoise").value),edge_softness:Number($("inpaint-softness").value),
@@ -133,7 +133,8 @@ async function cancel(){if(!P.active)return;
 window.mossInpaint={
   async init(){const root=$("inpaint-root");if(!root)return;
     if(P.bound===root){await followProject().catch(e=>message(e.message));place();return;}
-    P.bound=root;await session();
+    P.bound=root;const s=await session();
+    $("inpaint-summary").textContent=`${s.model_artifact_id==="base_bf16"?"Base":"SFT"} bf16 · 30 步 · 遮罩 latent 重繪＋柔邊合成 · ${capabilityLabel(s,"masked_inpaint")}`;
     P.saver=draftSaver("inpaint",{getProject:()=>P.project,capture,onState:(t)=>{$("inpaint-save-state").textContent=t;}});
     $("inpaint-file").onchange=(e)=>uploadSource(e.target.files[0]);
     $("inpaint-brush").onclick=()=>setMode("brush");$("inpaint-eraser").onclick=()=>setMode("eraser");

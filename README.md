@@ -1,10 +1,16 @@
 # MOSS-Image-Colab
 目標是在 Google Colab 以 ComfyUI 無頭引擎與 Gradio 五分頁執行 MOSS-Image。
 
-**開發中，尚非已驗收的完整生圖工具。** 依 [規格 v1.3.0](specs/requirements.md)：Stage 0、1 已 PASS；
-Stage 2～8 程式完成，但 GPU 驗收批次尚未執行，未跑的項目不算通過。進度見 [todo.md](todo.md)。
+[![在 Colab 開啟](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Openclaw-Metis/MOSS-Image-Colab/blob/main/notebooks/MOSS_Image_Colab.ipynb)
 
-五分頁：文生圖與排版（精細 50 步／加速 8 步、拉框含人物框）、多圖指令修圖（1～4 張）、筆刷局部重繪、
+點上方按鈕在 Colab 開啟 Notebook，執行階段選 **L4 GPU**，依序執行第 1～4 格，再點第 4 格印出的登入連結。
+詳細步驟見 [使用說明](docs/user-guide.md)。
+
+**開發中（規格 [v1.3.0](specs/requirements.md)）。** Stage 0～8 已在 Colab L4 完成 GPU 驗收：多數 PASS，
+修圖 3～4 張與輪廓控制未通過、介面標為實驗或改用預設深度；Stage 9 回歸（含 Cloudflare 通道完整流程）已完成，Stage 10 交付進行中。
+各功能狀態以介面標示為準（來源 `configs/capabilities.json`），進度見 [todo.md](todo.md)。
+
+五分頁：文生圖與排版（精細 50 步／加速 8 步、拉框含人物框）、多圖指令修圖（1～2 張；3～4 張為實驗）、筆刷局部重繪、
 視覺與深度控制（色彩／深度；視覺參考為實驗）、模型與高解析（固定清單下載、主模型切換、分段放大）。
 專案可匯出成 ZIP，在新的 Colab 匯入續編。
 
@@ -14,6 +20,8 @@ Stage 2～8 程式完成，但 GPU 驗收批次尚未執行，未跑的項目不
 詳見 [批次 A 證據](docs/evidence/stage2-batch-a/README.md)。
 
 **使用限制**：不得以真人照片製作換臉、私密或冒用他人身分的內容（Colab 對所有執行環境禁止 deepfakes）。
+
+怎麼用：見 [使用說明](docs/user-guide.md)（啟動、五個分頁、專案、結束、疑難排解、隱私）。
 
 開發檢查（Linux／macOS）：
 
@@ -34,7 +42,7 @@ python scripts/dev_server.py --data-root .runtime/dev --port 7861
 ```
 
 證據：[Stage 0](docs/stages/stage0.md)、[Stage 1](docs/stages/stage1.md)、[Stage 2](docs/stages/stage2.md)、
-[Stage 3～8](docs/stages/stage3-8.md)、[相容性](docs/compatibility.md)。
+[Stage 3～8](docs/stages/stage3-8.md)、[Stage 9](docs/stages/stage9.md)、[Stage 10](docs/stages/stage10.md)、[相容性](docs/compatibility.md)。
 
 模型權重、使用者素材與憑證不入版控。`docs/evidence/` 僅保留本專案測試生成的範例與驗證紀錄。
 Colab VM 回收會失去本地資料；請下載作品，或用專案選單匯出專案 ZIP。

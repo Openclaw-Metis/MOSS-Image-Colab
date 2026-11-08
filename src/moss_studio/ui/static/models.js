@@ -1,15 +1,17 @@
-import {request,session,currentProject,pollJob,TERMINAL} from "/static/api.js";
+import {request,session,currentProject,pollJob,TERMINAL,capabilityLabel} from "/static/api.js";
 const $=(id)=>document.getElementById(id);
 const ROLE={backbone:"主模型",text_vision_encoder:"文字／視覺編碼器",vae:"VAE",edit_lora:"修圖 LoRA",
-  control_lora:"控制 LoRA",speed_lora:"8 步加速 LoRA",geometry_estimator:"幾何估計（MoGe 3）"};
+  control_lora:"控制 LoRA",speed_lora:"8 步加速 LoRA",geometry_estimator:"幾何估計（MoGe 3）",user_lora:"自加 LoRA"};
 const STATE={ready:"已下載並校驗",missing:"未下載",downloading:"下載中…",failed:"下載失敗"};
 const M={bound:null,timer:null,project:null,outputs:[],active:null,pollToken:0,submitting:false,pending:null};
+const SHARED=new Set(["text_vision_encoder","vae"]);
 const gib=(b)=>(b/1024**3).toFixed(2)+" GiB";
 
 async function refreshModels(){
   try{const {models,busy}=await request("/api/models");const body=$("models-table").querySelector("tbody");body.replaceChildren();
     for(const m of models){const row=document.createElement("tr");row.style.borderBottom="1px solid #e2e8f0";
-      const cells=[`${m.id}${m.active?"（使用中）":""}`,ROLE[m.role]||m.role,gib(m.size_bytes),
+      const name=m.role==="user_lora"?`${m.label}（${m.repo}@${m.revision.slice(0,7)}）`:m.id;
+      const cells=[`${name}${m.active?"（使用中）":""}`,ROLE[m.role]||m.role,gib(m.size_bytes),
         (STATE[m.state]||m.state)+(m.message?`：${m.message}`:"")];
       for(const text of cells){const td=document.createElement("td");td.textContent=text;td.style.padding="6px 4px";row.append(td);}
       const license=document.createElement("td");const link=document.createElement("a");link.href=m.license_url;
@@ -20,12 +22,21 @@ async function refreshModels(){
       if(m.role==="backbone"&&m.state==="ready"&&!m.active){const b=document.createElement("button");b.type="button";
         b.textContent="設為使用中";b.disabled=busy;b.title=busy?"工作進行中不可切換":"";
         b.onclick=()=>act("/api/models/activate",{artifact_id:m.id},`已切換主模型為 ${m.id}；新工作會使用它`);actions.append(b);}
+      if(m.role==="user_lora"&&m.state!=="downloading"){const b=document.createElement("button");b.type="button";
+        b.textContent="移除";b.disabled=busy;b.title=busy?"工作進行中不可移除":"從清單移除，並刪除已下載的檔案";
+        b.onclick=()=>{if(confirm(`移除自加 LoRA「${m.label}」（含已下載的檔案）？`))
+          act(`/api/models/${m.id}`,null,`已移除 ${m.label}`,"DELETE");};actions.append(b);}
+      else if(m.state==="ready"&&!m.active&&!SHARED.has(m.role)){const b=document.createElement("button");b.type="button";
+        b.textContent="刪除檔案";b.disabled=busy;b.title=busy?"工作進行中不可刪除":"釋放磁碟空間，之後可重新下載";
+        b.onclick=()=>{if(confirm(`刪除 ${m.id}（${gib(m.size_bytes)}）？之後需要時可重新下載。`))
+          act(`/api/models/${m.id}`,null,`已刪除 ${m.id}`,"DELETE");};actions.append(b);}
       row.append(actions);body.append(row);}
-    $("models-status").textContent=busy?"有工作進行中：可下載，但不能切換主模型。":"模型清單已更新。";
+    $("models-status").textContent=(busy?"有工作進行中：可下載，但不能切換主模型或刪除檔案。":"模型清單已更新。")
+      +`模型管理：${capabilityLabel(M.session,"model_manager")}。`;
     clearTimeout(M.timer);if(models.some(m=>m.state==="downloading"))M.timer=setTimeout(refreshModels,3000);
   }catch(error){$("models-status").textContent=error.message;}}
 
-async function act(url,body,done){try{await request(url,{method:"POST",body});$("models-status").textContent=done;}
+async function act(url,body,done,method="POST"){try{await request(url,body?{method,body}:{method});$("models-status").textContent=done;}
   catch(error){$("models-status").textContent=error.message;}await refreshModels();}
 
 function targetSize(){const option=$("hires-source").selectedOptions[0];if(!option)return null;
@@ -38,7 +49,7 @@ function showPlan(){const t=targetSize();$("hires-denoise-value").textContent=Nu
   if(!t){$("hires-plan").textContent="先在其他分頁產生作品，或按「重新整理作品清單」。";return;}
   const passes=Math.ceil(Math.log(t.tw/t.w)/Math.log(1.5)-1e-9);
   $("hires-plan").textContent=t.tw<=t.w?"此作品已達目標尺寸，請選較大的長邊。"
-    :`${t.w}×${t.h} → ${t.tw}×${t.th}，約 ${passes} 段（每段 ≤1.5 倍）`;}
+    :`${t.w}×${t.h} → ${t.tw}×${t.th}，約 ${passes} 段（每段 ≤1.5 倍） · ${capabilityLabel(M.session,"hires")}`;}
 
 async function refreshOutputs(){try{M.project=await currentProject();
   const assets=await request(`/api/projects/${M.project.id}/assets`);
@@ -71,10 +82,20 @@ async function submit(){if(M.submitting)return;
   }catch(error){if(error.status===422)M.pending=null;$("hires-status").textContent=error.message;}
   finally{M.submitting=false;}}
 
+async function addLora(){const button=$("lora-add");button.disabled=true;
+  $("lora-status").textContent="正在向 Hugging Face 查詢檔案的 SHA256 與大小…";
+  try{const body={repo:$("lora-repo").value.trim(),revision:$("lora-revision").value.trim().toLowerCase(),
+      path:$("lora-path").value.trim()};
+    const lora=await request("/api/models/user-loras",{method:"POST",body});
+    $("lora-status").textContent=`已加入「${lora.label}」（${gib(lora.size_bytes)}），請在清單中按「下載」。`;
+    await refreshModels();}
+  catch(error){$("lora-status").textContent=error.message;}
+  finally{button.disabled=false;}}
+
 window.mossModels={
   async init(){const root=$("models-root");if(!root)return;
-    if(M.bound!==root){M.bound=root;await session();
-      $("hires-refresh").onclick=refreshOutputs;$("hires-source").onchange=showPlan;$("hires-edge").onchange=showPlan;
+    if(M.bound!==root){M.bound=root;M.session=await session();
+      $("lora-add").onclick=addLora;$("hires-refresh").onclick=refreshOutputs;$("hires-source").onchange=showPlan;$("hires-edge").onchange=showPlan;
       $("hires-denoise").oninput=showPlan;$("hires-submit").onclick=submit;
       $("hires-cancel").onclick=async()=>{if(!M.active)return;
         try{await request(`/api/jobs/${M.active.id}/cancel`,{method:"POST"});}catch(error){$("hires-status").textContent=error.message;}};}

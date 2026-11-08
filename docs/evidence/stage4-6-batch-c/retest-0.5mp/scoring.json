@@ -1,0 +1,111 @@
+{
+  "criteria": "每案例 3 項必要特徵，滿足至少 2 項且無黑圖或嚴重破圖才算成功；AC-08 另需圖號對應正確；AC-09 另需柔邊外逐像素保留（腳本自動量測）。",
+  "edit": {
+    "e2-coat": {
+      "features": [
+        "人物穿上紅格子外套",
+        "臉與姿勢跟圖 1 一致",
+        "背景跟圖 1 一致"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "refs": [
+        "person",
+        "coat"
+      ],
+      "mapping_ok": true,
+      "notes": "紅格子外套正確"
+    },
+    "e2-street": {
+      "features": [
+        "背景變成夜晚街道",
+        "人物衣著不變",
+        "人物姿勢不變"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "refs": [
+        "person",
+        "street"
+      ],
+      "mapping_ok": false,
+      "notes": "背景沒有換成夜晚街道，仍是灰色棚拍背景（0.25 MP 時正確）"
+    },
+    "e2-hat": {
+      "features": [
+        "人物戴上黃色毛帽",
+        "衣著不變",
+        "背景不變"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "refs": [
+        "person",
+        "hat"
+      ],
+      "mapping_ok": true,
+      "notes": "黃色毛帽戴在頭上，無殘影"
+    },
+    "e4-all": {
+      "features": [
+        "穿紅格子外套",
+        "戴黃色毛帽",
+        "背景為夜晚街道"
+      ],
+      "features_met": 0,
+      "severe_artifact": false,
+      "refs": [
+        "person",
+        "coat",
+        "hat",
+        "street"
+      ],
+      "mapping_ok": false,
+      "notes": "與 0.25 MP 相同：駝色外套、灰帽、白底"
+    },
+    "e4-swapped": {
+      "features": [
+        "交換順序後仍穿紅格子外套",
+        "戴黃色毛帽",
+        "背景為夜晚街道"
+      ],
+      "features_met": 0,
+      "severe_artifact": false,
+      "refs": [
+        "person",
+        "street",
+        "hat",
+        "coat"
+      ],
+      "mapping_ok": false,
+      "notes": "與 0.25 MP 相同：駝色外套、米色帽、白底"
+    },
+    "e4-room": {
+      "features": [
+        "場景為圖 1 客廳",
+        "人物坐在沙發",
+        "穿外套並戴毛帽"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "refs": [
+        "room",
+        "person",
+        "coat",
+        "hat"
+      ],
+      "mapping_ok": false,
+      "notes": "人物坐在圖 1 客廳沙發，穿棕外套戴深色帽；外套與帽子不是圖 3、圖 4"
+    }
+  },
+  "inpaint": {},
+  "control": {},
+  "vision": {},
+  "summary": {
+    "scored_at": "2026-11-08",
+    "recipe": "修圖圖 2～4 為 0.5 MP；程式 0702c7a",
+    "edit_2_images": 2,
+    "edit_4_images": 0,
+    "decision": "0.5 MP 讓 2 張圖的街道例退步、4 張圖沒有改善；改回 0.25 MP"
+  }
+}

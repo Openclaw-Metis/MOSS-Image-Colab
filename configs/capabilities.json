@@ -11,7 +11,7 @@
         "docs/evidence/stage2-batch-a/zh_tw_scoring.json"
       ],
       "workflow_hash": null,
-      "reason": "排版生成 10/10 成功；繁中逐字正確 7/10（未達 8/10，介面已標示限制）"
+      "reason": "排版生成 10/10；繁中逐字正確 7/10，未達 8/10；使用者 2026-11-07 接受限制，介面已提醒"
     },
     {
       "id": "quality_50",
@@ -34,68 +34,99 @@
       "reason": "AC-06 通過：暖機 23.4 s、正式 10.4–10.5 s（約為 quality50 的 1/10.6）；同種子目視畫質相當、略偏平滑"
     },
     {
-      "id": "instruction_edit_4",
+      "id": "instruction_edit_2",
       "class": "required",
-      "state": "unverified",
-      "evidence": [],
+      "state": "verified",
+      "evidence": [
+        "docs/evidence/stage4-6-batch-c/scoring.json",
+        "docs/evidence/stage4-6-batch-c/retest/scoring.json"
+      ],
       "workflow_hash": null,
-      "reason": "程式完成；GPU 批次 B（AC-08）未執行"
+      "reason": "AC-08 1 張 3/3、2 張 3/3（圖 2 縮到 0.25 MP 後重測）；約 81～85 秒"
+    },
+    {
+      "id": "instruction_edit_4",
+      "class": "experimental",
+      "state": "probing",
+      "evidence": [
+        "docs/evidence/stage4-6-batch-c/scoring.json",
+        "docs/evidence/stage4-6-batch-c/retest/scoring.json",
+        "docs/evidence/stage4-6-batch-c/retest-0.5mp/scoring.json"
+      ],
+      "workflow_hash": null,
+      "reason": "AC-08 3～4 張未通過：參考圖 1 MP 會被貼成半透明圖層，0.25／0.5 MP 時圖 3、4 的內容帶不進來；使用者 2026-11-08 接受限制，介面標為實驗"
     },
     {
       "id": "masked_inpaint",
       "class": "required",
-      "state": "unverified",
-      "evidence": [],
+      "state": "verified",
+      "evidence": [
+        "docs/evidence/stage4-6-batch-c/scoring.json",
+        "docs/evidence/stage4-6-batch-c/retest/scoring.json"
+      ],
       "workflow_hash": null,
-      "reason": "程式完成，柔邊外逐像素保留已有 CPU 測試；GPU 批次 C（AC-09 品質）未執行"
+      "reason": "AC-09：柔邊外逐像素保留 5/5；強度 1.0 時要求的物件出現 4/5（強度 0.75～0.85 時 2/5，預設已改 1.0）；約 70 秒"
     },
     {
       "id": "color_depth",
       "class": "required",
-      "state": "unverified",
-      "evidence": [],
+      "state": "verified",
+      "evidence": [
+        "docs/evidence/stage4-6-batch-c/scoring.json"
+      ],
       "workflow_hash": null,
-      "reason": "程式完成；估計圖預覽未做；GPU 批次 C（AC-11）未執行"
+      "reason": "AC-11：深度模式保留主要幾何 5/5；輪廓（MoGe mask）在棚拍或室內背景整片變白，0/5，介面已改預設深度並說明"
     },
     {
       "id": "hires",
       "class": "required",
-      "state": "unverified",
-      "evidence": [],
+      "state": "verified",
+      "evidence": [
+        "docs/evidence/stage7-8-batch-d/report.json"
+      ],
       "workflow_hash": null,
-      "reason": "分段放大程式完成；GPU 批次 D（AC-12）未執行"
+      "reason": "AC-12：原生 1456² 3/3（253 秒）、分段放大到 2048² 3/3（521 秒），GPU 峰值 20.5 GB"
     },
     {
       "id": "model_manager",
       "class": "required",
-      "state": "unverified",
-      "evidence": [],
+      "state": "verified",
+      "evidence": [
+        "docs/evidence/stage7-8-batch-d/report.json"
+      ],
       "workflow_hash": null,
-      "reason": "固定清單下載與 SFT↔Base 切換程式完成；使用者自加 HF LoRA 未實作；GPU 批次 D（AC-13、AC-14）未執行"
+      "reason": "AC-13 SFT↔Base 切換、忙碌阻擋與失敗回復通過；AC-14 10 種不相容組合全數攔截；自加 HF LoRA 尚未在 GPU 實測"
     },
     {
       "id": "project_archive",
       "class": "required",
-      "state": "unverified",
-      "evidence": [],
+      "state": "verified",
+      "evidence": [
+        "docs/evidence/stage7-8-batch-d/ac15_manifest.json",
+        "docs/evidence/stage7-8-batch-d/ac15_import_report.json"
+      ],
       "workflow_hash": null,
-      "reason": "匯出入程式與 CPU 測試完成；新 VM 續編（AC-15）未執行"
+      "reason": "AC-15：匯出 1.68 MB 專案檔，在新 VM 匯入後 4 個素材 hash 與五個分頁草稿完全一致，續編重繪與文生圖成功"
     },
     {
       "id": "vision_reference",
       "class": "experimental",
-      "state": "unverified",
-      "evidence": [],
+      "state": "probing",
+      "evidence": [
+        "docs/evidence/stage4-6-batch-c/scoring.json"
+      ],
       "workflow_hash": null,
-      "reason": "實驗：模型沒有正式圖片輸入；GPU 批次 C（AC-10）未執行"
+      "reason": "實驗：AC-10 5 例都與關閉時明顯不同，照評分規則 4/5；傾向照抄參考圖而不照提示詞構圖"
     },
     {
       "id": "native_2048",
       "class": "experimental",
-      "state": "unverified",
-      "evidence": [],
+      "state": "verified",
+      "evidence": [
+        "docs/evidence/stage7-8-batch-d/report.json"
+      ],
       "workflow_hash": null,
-      "reason": "實驗：AC-20 未執行"
+      "reason": "實驗：AC-20 原生 2048² 3/3，每張約 608 秒，GPU 峰值 20.4 GB，無 OOM"
     },
     {
       "id": "edit_hq",

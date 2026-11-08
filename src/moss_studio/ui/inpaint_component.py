@@ -37,7 +37,8 @@ INPAINT_HTML = f"""
   placeholder="描述塗抹區域要畫成什麼，例如：一束紅色玫瑰"></textarea>
  <div style="display:flex;gap:16px;flex-wrap:wrap">
   <label>重繪幅度 <input id="inpaint-denoise" type="range" min="0.05" max="1" step="0.05"
-    value="0.65"> <output id="inpaint-denoise-value">0.65</output></label>
+    value="1"> <output id="inpaint-denoise-value">1.00</output></label>
+  <span style="color:#475569">要加入新東西請用 1.00；只想微調質感或顏色再調低。</span>
   <label>邊緣柔和度 <input id="inpaint-softness" type="range" min="0" max="1" step="0.05"
     value="0.15"> <output id="inpaint-softness-value">0.15</output></label>
  </div>
@@ -49,7 +50,7 @@ INPAINT_HTML = f"""
   <label>種子（留空自動產生）<input id="inpaint-seed"
     style="border:1px solid #94a3b8;padding:5px"></label>
  </details>
- <p id="inpaint-summary">SFT bf16 · 30 步 · 遮罩 latent 重繪＋柔邊合成 · 尚未通過 GPU 驗收</p>
+ <p id="inpaint-summary">30 步 · 遮罩 latent 重繪＋柔邊合成</p>
  <div style="display:flex;gap:8px;flex-wrap:wrap">
   <button id="inpaint-submit" type="button" style="background:#1d4ed8;color:white;
     padding:10px 18px;border-radius:6px;border:0">開始重繪</button>

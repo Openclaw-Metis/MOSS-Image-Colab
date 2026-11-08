@@ -1,0 +1,378 @@
+{
+  "criteria": "每案例 3 項必要特徵，滿足至少 2 項且無黑圖或嚴重破圖才算成功；AC-08 另需圖號對應正確；AC-09 另需柔邊外逐像素保留（腳本自動量測）。",
+  "edit": {
+    "e1-hoodie": {
+      "features": [
+        "上衣變成黑色連帽衣",
+        "人物姿勢與臉部不變",
+        "背景不變"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "refs": [
+        "person"
+      ],
+      "mapping_ok": true,
+      "notes": ""
+    },
+    "e1-beach": {
+      "features": [
+        "背景變成海灘",
+        "衣著不變",
+        "姿勢不變"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "refs": [
+        "person"
+      ],
+      "mapping_ok": true,
+      "notes": ""
+    },
+    "e1-jeans": {
+      "features": [
+        "褲子變紅色",
+        "上衣仍為白色",
+        "背景不變"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "refs": [
+        "person"
+      ],
+      "mapping_ok": true,
+      "notes": ""
+    },
+    "e2-coat": {
+      "features": [
+        "人物穿上紅格子外套",
+        "臉與姿勢跟圖 1 一致",
+        "背景跟圖 1 一致"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "refs": [
+        "person",
+        "coat"
+      ],
+      "mapping_ok": true,
+      "notes": ""
+    },
+    "e2-street": {
+      "features": [
+        "背景變成夜晚街道",
+        "人物衣著不變",
+        "人物姿勢不變"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "refs": [
+        "person",
+        "street"
+      ],
+      "mapping_ok": true,
+      "notes": ""
+    },
+    "e2-hat": {
+      "features": [
+        "人物戴上黃色毛帽",
+        "衣著不變",
+        "背景不變"
+      ],
+      "features_met": 2,
+      "severe_artifact": true,
+      "refs": [
+        "person",
+        "hat"
+      ],
+      "mapping_ok": true,
+      "notes": "頭上有黃色毛帽，但整張圖疊了一頂半透明的巨大毛帽（圖 2 被貼成圖層）"
+    },
+    "e4-all": {
+      "features": [
+        "穿紅格子外套",
+        "戴黃色毛帽",
+        "背景為夜晚街道"
+      ],
+      "features_met": 0,
+      "severe_artifact": true,
+      "refs": [
+        "person",
+        "coat",
+        "hat",
+        "street"
+      ],
+      "mapping_ok": false,
+      "notes": "外套變成棕色毛料、帽子變成墨綠色、背景是白底不是街道；有殘影"
+    },
+    "e4-swapped": {
+      "features": [
+        "交換順序後仍穿紅格子外套",
+        "戴黃色毛帽",
+        "背景為夜晚街道"
+      ],
+      "features_met": 0,
+      "severe_artifact": true,
+      "refs": [
+        "person",
+        "street",
+        "hat",
+        "coat"
+      ],
+      "mapping_ok": false,
+      "notes": "同 e4-all：棕色毛料外套、米色帽、白底；有殘影"
+    },
+    "e4-room": {
+      "features": [
+        "場景為圖 1 客廳",
+        "人物坐在沙發",
+        "穿外套並戴毛帽"
+      ],
+      "features_met": 1,
+      "severe_artifact": true,
+      "refs": [
+        "room",
+        "person",
+        "coat",
+        "hat"
+      ],
+      "mapping_ok": false,
+      "notes": "客廳可辨認但整張被半透明毛料殘影覆蓋，看不到人物"
+    }
+  },
+  "inpaint": {
+    "i1-plant": {
+      "features": [
+        "選取區出現綠色盆栽",
+        "沙發與牆面不變",
+        "接縫自然"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "notes": "要求的盆栽沒有出現；選取區原本的坐墩被抹成地板"
+    },
+    "i2-painting": {
+      "features": [
+        "牆上出現山景畫",
+        "其他區域不變",
+        "接縫自然"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "notes": "牆上出現淡藍山景與一根木條（像掛軸），沒有畫框"
+    },
+    "i3-sweater": {
+      "features": [
+        "上衣變成綠色毛衣",
+        "臉與褲子不變",
+        "接縫自然"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "notes": "上衣仍是白色 T 恤，沒有變成綠色毛衣"
+    },
+    "i4-lamp": {
+      "features": [
+        "左側出現落地燈",
+        "人物不變",
+        "接縫自然"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "notes": "沒有出現落地燈"
+    },
+    "i5-bicycle": {
+      "features": [
+        "選取區出現紅色腳踏車",
+        "霓虹招牌不變",
+        "接縫自然"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "notes": "出現一台小而暗的紅色腳踏車"
+    }
+  },
+  "control": {
+    "c1-mask-knight": {
+      "features": [
+        "輪廓跟隨舞者姿勢",
+        "盔甲騎士",
+        "城堡場景"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "differs_from_off": true,
+      "notes": "MoGe 的 mask 估計圖幾乎全白（棚拍背景整片都被視為有效幾何），沒有提供輪廓；姿勢只來自提示詞"
+    },
+    "c2-mask-astronaut": {
+      "features": [
+        "輪廓跟隨舞者姿勢",
+        "太空人",
+        "月球場景"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "differs_from_off": "n/a",
+      "notes": "MoGe 的 mask 估計圖幾乎全白（棚拍背景整片都被視為有效幾何），沒有提供輪廓；姿勢只來自提示詞"
+    },
+    "c3-mask-robot": {
+      "features": [
+        "輪廓跟隨站姿",
+        "機器人",
+        "實驗室場景"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "differs_from_off": true,
+      "notes": "MoGe 的 mask 估計圖幾乎全白（棚拍背景整片都被視為有效幾何），沒有提供輪廓；姿勢只來自提示詞"
+    },
+    "c4-mask-painting": {
+      "features": [
+        "輪廓跟隨站姿",
+        "藍色長裙",
+        "油畫風格"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "differs_from_off": "n/a",
+      "notes": "MoGe 的 mask 估計圖幾乎全白（棚拍背景整片都被視為有效幾何），沒有提供輪廓；姿勢只來自提示詞"
+    },
+    "c5-mask-colormap": {
+      "features": [
+        "輪廓跟隨舞者姿勢",
+        "畫面左右色塊區分",
+        "舞台場景"
+      ],
+      "features_met": 1,
+      "severe_artifact": false,
+      "differs_from_off": "n/a",
+      "notes": "MoGe 的 mask 估計圖幾乎全白（棚拍背景整片都被視為有效幾何），沒有提供輪廓；姿勢只來自提示詞；畫面也沒有左右色塊區分"
+    },
+    "c6-depth-knight": {
+      "features": [
+        "幾何跟隨舞者姿勢",
+        "盔甲騎士",
+        "城堡場景"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "differs_from_off": "n/a",
+      "notes": "姿勢緊貼舞者"
+    },
+    "c7-depth-astronaut": {
+      "features": [
+        "幾何跟隨舞者姿勢",
+        "太空人",
+        "月球場景"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "differs_from_off": "n/a",
+      "notes": "姿勢與月球正確，但人物是白衣舞者，不是太空衣"
+    },
+    "c8-depth-robot": {
+      "features": [
+        "幾何跟隨站姿",
+        "機器人",
+        "實驗室場景"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "differs_from_off": "n/a",
+      "notes": "姿勢與實驗室正確，但人物仍是原本的女性，不是機器人（深度把身形也帶過來）"
+    },
+    "c9-depth-painting": {
+      "features": [
+        "幾何跟隨站姿",
+        "藍色長裙",
+        "油畫風格"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "differs_from_off": "n/a",
+      "notes": "姿勢與油畫風格正確，但穿藍上衣牛仔褲，不是藍色長裙"
+    },
+    "c10-depth-statue": {
+      "features": [
+        "幾何跟隨舞者姿勢",
+        "大理石雕像",
+        "博物館場景"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "differs_from_off": "n/a",
+      "notes": ""
+    }
+  },
+  "vision": {
+    "v1-coat": {
+      "features": [
+        "外套為紅格子",
+        "公園場景",
+        "人物行走"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "differs_from_off": true,
+      "notes": "紅格子外套、公園、行走都有，但畫面拼成左右兩格（左邊是商品照）"
+    },
+    "v2-hat": {
+      "features": [
+        "帽子為黃色毛帽",
+        "雪地",
+        "小孩"
+      ],
+      "features_met": 1,
+      "severe_artifact": false,
+      "differs_from_off": true,
+      "notes": "只輸出毛帽商品照，沒有小孩與雪地"
+    },
+    "v3-room": {
+      "features": [
+        "家具配置近似圖 1",
+        "夜晚",
+        "暖光"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "differs_from_off": true,
+      "notes": "家具配置接近圖 1"
+    },
+    "v4-street": {
+      "features": [
+        "街景配置近似圖 1",
+        "白天",
+        "有行人"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "differs_from_off": true,
+      "notes": "街景接近圖 1，但仍是夜晚，沒有變成白天"
+    },
+    "v5-two": {
+      "features": [
+        "紅格子外套",
+        "黃色毛帽",
+        "櫥窗人台"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "differs_from_off": true,
+      "notes": "外套與毛帽都在，但是白底人台、帽子沒戴上，沒有櫥窗"
+    }
+  },
+  "summary": {
+    "scored_at": "2026-11-08",
+    "rule": "每案例 3 項必要特徵，滿足至少 2 項且無黑圖或嚴重破圖才算成功；AC-08 另需圖號對應正確；AC-09 另需柔邊外逐像素保留（腳本自動量測）。",
+    "edit_1_image": 3,
+    "edit_2_images": 2,
+    "edit_4_images": 0,
+    "inpaint_by_rule": 5,
+    "inpaint_requested_change_present": 2,
+    "control_mask_geometry_kept": 0,
+    "control_depth_geometry_kept": 5,
+    "control_depth_by_rule": 5,
+    "vision_by_rule": 4,
+    "strict_reading_note": "重繪的 3 項特徵中，「其他區域不變」「接縫自然」由後端合成保證，什麼都不畫也會滿足；若把第 1 項（要求的變更）視為必要，重繪只有 2/5 成功。採用哪種讀法待使用者決定。"
+  }
+}

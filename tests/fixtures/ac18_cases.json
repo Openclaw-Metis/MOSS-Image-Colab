@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "purpose": "AC-18 一般生成 5 例（局部修補 5 例沿用 batch_c_cases.json 的 i1～i5）。案例、種子與特徵在執行模型前固定，不得跑完後挑圖或改標準。",
+  "profile_id": "quality50_v1",
+  "scoring": "每案例 3 項必要特徵，滿足至少 2 項且無黑圖或嚴重破圖才算成功；各類 ≥4/5（80%）為通過",
+  "cases": [
+    {"id": "g1-portrait", "width": 1024, "height": 1536, "seed": 91001,
+     "prompt": "A studio portrait photograph of an elderly fisherman with a white beard wearing a yellow raincoat, soft window light, shallow depth of field.",
+     "features": ["白鬍子的年長漁夫", "黃色雨衣", "淺景深人像攝影"]},
+    {"id": "g2-landscape", "width": 1536, "height": 1024, "seed": 91002,
+     "prompt": "A wide landscape photograph of terraced rice fields at sunrise, mist in the valley, a small wooden house on the right side.",
+     "features": ["梯田", "日出與山谷霧氣", "右側有小木屋"]},
+    {"id": "g3-product", "width": 1024, "height": 1024, "seed": 91003,
+     "prompt": "A product photograph of a matte black ceramic coffee mug on a light oak table, steam rising from the mug, plain beige background.",
+     "features": ["霧面黑色陶瓷杯", "淺色木桌", "杯口冒熱氣"]},
+    {"id": "g4-illustration", "width": 1024, "height": 1024, "seed": 91004,
+     "prompt": "A flat vector illustration of a red fox sleeping under a large green tree, pastel colours, simple shapes, no text.",
+     "features": ["紅狐狸在睡覺", "綠色大樹", "扁平向量插畫風格"]},
+    {"id": "g5-interior", "width": 1344, "height": 768, "seed": 91005,
+     "prompt": "A cozy reading nook in the evening with a blue velvet armchair, a tall bookshelf full of books and a floor lamp casting warm light.",
+     "features": ["藍色絨布扶手椅", "放滿書的高書架", "暖光落地燈"]}
+  ]
+}

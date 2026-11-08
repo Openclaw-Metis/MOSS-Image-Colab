@@ -56,7 +56,9 @@ class ProductClient:
 
     def submit(self, payload: dict) -> str:
         response = self.http.post("/api/jobs", json=payload)
-        response.raise_for_status()
+        if response.is_error:
+            # Keep the service's own reason (e.g. which node input failed) in the batch log.
+            raise RuntimeError(f"提交被拒（HTTP {response.status_code}）：{response.text[:500]}")
         return response.json()["id"]
 
     def wait(self, job_id: str, timeout: float = 1200) -> dict:
@@ -69,6 +71,91 @@ class ProductClient:
                 return job
             time.sleep(1)
         raise TimeoutError("Job still running; inspect it before retrying, never resubmit")
+
+    def upload(self, project_id: str, data: bytes, kind: str = "input") -> dict:
+        response = self.http.post(
+            f"/api/projects/{project_id}/assets",
+            params={"kind": kind},
+            content=data,
+            headers={"Content-Type": "image/png"},
+            timeout=120,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def asset_bytes(self, project_id: str, asset_id: str) -> bytes:
+        response = self.http.get(f"/api/assets/{project_id}/{asset_id}", timeout=120)
+        response.raise_for_status()
+        return response.content
+
+    def base_payload(self, project_id: str, key: str, **fields) -> dict:
+        """JobSpec with deterministic request id; callers fill task-specific fields."""
+        project = self.project(project_id)
+        payload = {
+            "project_id": project_id,
+            "client_request_id": self.request_id(project_id, key),
+            "project_revision": project["revision"],
+            "task": "t2i",
+            "profile_id": "quality50_v1",
+            "model_artifact_id": "sft_bf16",
+            "prompt": "",
+            "negative_prompt": "",
+            "width": 1024,
+            "height": 1024,
+            "seed": "1",
+            "references": [],
+            "layout": None,
+            "mask_asset_id": None,
+            "control": None,
+            "lora_stack": [],
+        }
+        payload.update(fields)
+        return payload
+
+    def models(self) -> dict:
+        response = self.http.get("/api/models")
+        response.raise_for_status()
+        return response.json()
+
+    def session_info(self) -> dict:
+        return self.http.get("/api/session").json()
+
+    def probe(self, method: str, path: str, body: dict | None = None) -> tuple[int, dict]:
+        """Raw call for negative tests: returns status and body instead of raising."""
+        response = self.http.request(method, path, json=body, timeout=120)
+        try:
+            return response.status_code, response.json()
+        except ValueError:
+            return response.status_code, {}
+
+    def save_draft(self, project_id: str, tab: str, draft: dict) -> dict:
+        revision = self.project(project_id)["revision"]
+        response = self.http.put(
+            f"/api/projects/{project_id}/draft",
+            json={"draft": draft, "expected_revision": revision, "tab": tab},
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def export_project(self, project_id: str) -> bytes:
+        response = self.http.get(f"/api/projects/{project_id}/export", timeout=600)
+        response.raise_for_status()
+        return response.content
+
+    def import_project(self, data: bytes) -> dict:
+        response = self.http.post(
+            "/api/projects/import",
+            content=data,
+            headers={"Content-Type": "application/zip"},
+            timeout=600,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def assets(self, project_id: str) -> list[dict]:
+        response = self.http.get(f"/api/projects/{project_id}/assets")
+        response.raise_for_status()
+        return response.json()
 
     def download_output(self, job: dict) -> tuple[bytes, dict]:
         asset = job["record"]["output_assets"][0]

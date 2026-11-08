@@ -3,7 +3,7 @@
   "version": 1,
   "label": "筆刷重繪",
   "task_family": "inpaint",
-  "source": "Product decision: quality50 sampler settings at 30 steps on a SetLatentNoiseMask latent; not an upstream inpaint recipe. Requires GPU batch C (AC-09) before release.",
+  "source": "Product decision: quality50 sampler settings at 30 steps on a SetLatentNoiseMask latent; not an upstream inpaint recipe. Default denoise 1.0: in GPU batch C (2026-11-08) denoise 0.75-0.85 mostly rebuilt the background instead of adding the requested object.",
   "steps": 30,
   "cfg": 3.0,
   "sampler": "euler",
@@ -15,7 +15,7 @@
   "negative_prompt": true,
   "default_negative_prompt": "",
   "working_megapixels": 1.0,
-  "denoise": {"default": 0.65, "min": 0.05, "max": 1.0},
+  "denoise": {"default": 1.0, "min": 0.05, "max": 1.0},
   "edge_softness": {"default": 0.15, "min": 0.0, "max": 1.0},
   "state": "probing"
 }

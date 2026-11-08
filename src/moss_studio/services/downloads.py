@@ -1,6 +1,7 @@
-"""Stage 1 pinned, public Hugging Face artifacts. Arbitrary URLs are not accepted.
+"""Pinned, public Hugging Face artifacts. Arbitrary URLs are not accepted.
 
-Civitai/third-party URL resolution is a separate Stage 7 capability, not implemented here.
+The fixed list comes from configs/models.lock.json; user LoRAs are pinned by user_loras.py.
+Civitai/third-party URL resolution is not implemented.
 HF's official client handles its CDN; no user-supplied destination is passed to it.
 """
 
@@ -16,6 +17,7 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path, PurePosixPath
 
 from moss_studio.domain.contracts import ValidationError
+from moss_studio.services.user_loras import REPO as USER_REPO
 from moss_studio.storage.atomic import file_lock, private_dir
 
 APPROVED_REPOS = {
@@ -32,7 +34,19 @@ def source_path(artifact: dict) -> str:
 
 
 def validate_download(artifact: dict) -> None:
-    if artifact.get("provider") != "huggingface" or artifact.get("repo") not in APPROVED_REPOS:
+    if artifact.get("provider") != "huggingface":
+        raise ValidationError("只允許 Hugging Face 模型來源")
+    if artifact.get("origin") == "user":
+        # User-added LoRA: any public repo, but only into loras/user_<sha>.safetensors and only
+        # under the commit + SHA256 + size pinned when it was added (see user_loras.py).
+        repo, identifier = artifact.get("repo"), artifact.get("id", "")
+        if not isinstance(repo, str) or not USER_REPO.fullmatch(repo) or ".." in repo:
+            raise ValidationError("模型庫名稱無效")
+        if artifact.get("role") != "user_lora" or artifact.get("filename") != (
+            f"loras/{identifier}.safetensors"
+        ):
+            raise ValidationError("自加 LoRA 只能存成 loras/user_*.safetensors")
+    elif artifact.get("repo") not in APPROVED_REPOS:
         raise ValidationError("只允許已審核的 Hugging Face 模型來源")
     identifier = artifact.get("id", "")
     if not identifier or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789_-" for c in identifier):
@@ -156,6 +170,16 @@ def fetch_with_retry(artifact: dict, staging: Path, fetch, *, sleep=None) -> Pat
     raise AssertionError("unreachable")
 
 
+def hub_token() -> str | bool:
+    """Optional HF token from Colab Secrets (the notebook puts it in HF_TOKEN), else anonymous.
+
+    Only public, pinned files are fetched; a token just lifts anonymous rate limits and speed.
+    It is never logged or stored. huggingface_hub drops it before following a redirect to a
+    signed CDN on another host (checked in the pinned 1.33.0, file_download.py).
+    """
+    return os.environ.get("HF_TOKEN", "").strip() or False
+
+
 def _hf_fetch(artifact: dict, staging: Path) -> Path:
     # Verified against the pinned hf_xet 1.8 XetConfig; set before its global session exists.
     os.environ.setdefault("HF_XET_CLIENT_AC_MAX_DOWNLOAD_CONCURRENCY", "2")
@@ -169,7 +193,7 @@ def _hf_fetch(artifact: dict, staging: Path) -> Path:
             filename=source_path(artifact),
             revision=artifact["revision"],
             local_dir=staging,
-            token=False,
+            token=hub_token(),
         )
     )
 

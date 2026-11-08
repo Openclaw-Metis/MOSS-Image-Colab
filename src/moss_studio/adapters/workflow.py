@@ -64,14 +64,34 @@ def model_chain(graph: dict, profile: dict, registry: dict, extra_loras=()) -> l
     return model
 
 
+def validate_user_loras(stack, profile: dict, registry: dict) -> list[dict]:
+    """Only presets that declare `user_loras` take a stack, and only of user-added LoRAs."""
+    rules = profile.get("user_loras")
+    if not stack:
+        return []
+    if not rules:
+        raise ValidationError("E_MODEL_INCOMPATIBLE：此採樣預設不接受自加 LoRA（請改用精細 50 步）")
+    if not isinstance(stack, list) or len(stack) > rules["max"]:
+        raise ValidationError(f"自加 LoRA 最多 {rules['max']} 個")
+    seen = set()
+    for lora in stack:
+        if not isinstance(lora, dict) or set(lora) != {"artifact_id", "strength"}:
+            raise ValidationError("LoRA 設定欄位不符")
+        artifact = registry.get(lora["artifact_id"])
+        if not artifact or artifact.get("role") != "user_lora" or lora["artifact_id"] in seen:
+            raise ValidationError("E_MODEL_INCOMPATIBLE：只能疊加模型頁加入的自加 LoRA，且不可重複")
+        _bounded(lora["strength"], rules["strength"], "LoRA 強度")
+        seen.add(lora["artifact_id"])
+    return stack
+
+
 def compile_t2i(spec: dict, template: dict, profile: dict, registry: dict) -> dict:
     validate_job_spec(spec)
     if spec["task"] not in {"t2i", "layout"}:
         raise ValidationError("此編譯器只接受文生圖與排版")
-    if spec["references"] or spec["mask_asset_id"] or spec["control"] or spec["lora_stack"]:
-        raise ValidationError(
-            "E_MODEL_INCOMPATIBLE：文生圖預設不接受未驗證的參考、控制或 LoRA 疊加"
-        )
+    if spec["references"] or spec["mask_asset_id"] or spec["control"]:
+        raise ValidationError("E_MODEL_INCOMPATIBLE：文生圖預設不接受未驗證的參考或控制")
+    user_loras = validate_user_loras(spec["lora_stack"], profile, registry)
     artifact = check_profile(spec, profile, registry, "t2i")
     graph = deepcopy(template)
     graph["1"]["inputs"]["unet_name"] = Path(artifact["filename"]).name
@@ -95,7 +115,7 @@ def compile_t2i(spec: dict, template: dict, profile: dict, registry: dict) -> di
         scheduler=profile["scheduler"],
     )
     graph["9"]["inputs"]["filename_prefix"] = "moss_studio"
-    graph["7"]["inputs"]["model"] = model_chain(graph, profile, registry)
+    graph["7"]["inputs"]["model"] = model_chain(graph, profile, registry, user_loras)
     return graph
 
 
@@ -120,12 +140,17 @@ def compile_edit(
     for index, name in enumerate(engine_names):
         load, scale = str(11 + index), str(15 + index)
         graph[load] = {"class_type": "LoadImage", "inputs": {"image": name}}
+        # Picture 1 sets the output size; the others only lend content, and at full size they
+        # tend to be pasted in as translucent layers (GPU batch C), so they are scaled down.
+        megapixels = profile["reference_megapixels"]
+        if index:
+            megapixels = profile.get("secondary_reference_megapixels", megapixels)
         graph[scale] = {
             "class_type": "ImageScaleToTotalPixels",
             "inputs": {
                 "image": [load, 0],
                 "upscale_method": "lanczos",
-                "megapixels": profile["reference_megapixels"],
+                "megapixels": megapixels,
                 "resolution_steps": 16,
             },
         }
@@ -275,6 +300,11 @@ def compile_control(spec: dict, template: dict, profile: dict, registry: dict, n
             "inputs": {"moge_geometry": ["41", 0], "output": control["geometry"]},
         }
         applied["depth_map"] = ["42", 0]
+        # Saved as an auxiliary output so the user can see the geometry that was applied.
+        graph["46"] = {
+            "class_type": "SaveImage",
+            "inputs": {"images": ["42", 0], "filename_prefix": "moss_studio_control_map"},
+        }
     else:
         graph["43"] = {"class_type": "LoadImage", "inputs": {"image": names["depth"]}}
         applied["depth_map"] = ["43", 0]
@@ -403,8 +433,13 @@ def compile_upscale(
     return graph
 
 
-def validate_nodes(graph: dict, object_info: dict) -> None:
-    """Checks actual node names, required inputs, connections and loader enum values."""
+def validate_nodes(graph: dict, object_info: dict, pending_uploads=frozenset()) -> None:
+    """Checks actual node names, required inputs, connections and loader enum values.
+
+    ComfyUI lists LoadImage/LoadImageMask choices from files already in its input folder, but the
+    service uploads a job's own images only when the job runs. Those names (moss_*.png, passed as
+    pending_uploads) are therefore accepted; model and option enums stay strict.
+    """
     for node in graph.values():
         info = object_info.get(node["class_type"])
         if info is None:
@@ -412,12 +447,31 @@ def validate_nodes(graph: dict, object_info: dict) -> None:
         inputs = node["inputs"]
         required = info["input"].get("required", {})
         for key, declaration in required.items():
+            if isinstance(declaration, list) and declaration[:1] == ["COMFY_AUTOGROW_V3"]:
+                # Dynamic group: the API carries it flattened as "<key>.<prefix><n>" entries.
+                options = declaration[1] if len(declaration) > 1 else {}
+                group = [name for name in inputs if name.startswith(f"{key}.")]
+                if not options.get("min", 1) <= len(group) <= options.get("max", len(group)):
+                    raise ValidationError(
+                        f"E_CAPABILITY：節點 {node['class_type']} 的 {key} 數量不符"
+                    )
+                for name in group:
+                    value = inputs[name]
+                    if not (isinstance(value, list) and len(value) == 2 and value[0] in graph):
+                        raise ValidationError("工作流連線不存在")
+                continue
             if key not in inputs:
                 raise ValidationError(f"E_CAPABILITY：節點 {node['class_type']} 缺少 {key}")
             value = inputs[key]
             if isinstance(value, list) and len(value) == 2 and isinstance(value[0], str):
                 if value[0] not in graph:
                     raise ValidationError("工作流連線不存在")
+                continue
+            if (
+                key == "image"
+                and node["class_type"] in {"LoadImage", "LoadImageMask"}
+                and value in pending_uploads
+            ):
                 continue
             if isinstance(declaration[0], list) and value not in declaration[0]:
                 raise ValidationError(f"E_CAPABILITY：{key} 的模型或選項尚未就緒")

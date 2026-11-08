@@ -1,4 +1,5 @@
 import {LayoutCanvas} from "/static/layout.js";
+import {capabilityLabel} from "/static/api.js";
 const $=(id)=>document.getElementById(id);
 const stages={created:"正在準備",validating:"正在檢查",queued:"已排隊",encoding:"正在編碼",
   sampling:"正在繪製",decoding:"正在解碼",saving:"正在保存",succeeded:"已完成",
@@ -10,10 +11,17 @@ const active=()=>S.active&&!['succeeded','failed','cancelled','interrupted'].inc
 const message=(text)=>{$("moss-status").textContent=text;};
 const defaults=["","",1024,1024,"",false,"quality50_v1"];
 const profileOf=(id)=>(S.session?.profiles||[]).find(p=>p.id===id);
-function showProfile(id){const p=profileOf(id);if(!p)return;
-  $("moss-profile-summary").textContent=p.negative_prompt
-    ?`SFT bf16 · ${p.steps} 步 Euler · CFG ${p.cfg} · SLG 22 · 開發驗證中`
-    :`SFT bf16 · ${p.steps} 步 · DMD 加速 LoRA · 不使用 CFG 與負向提示詞 · 尚未通過 GPU 驗收`;}
+function showProfile(id){const p=profileOf(id);if(!p)return;const model=S.session.model_artifact_id;
+  const name=model==="base_bf16"?"Base bf16":"SFT bf16";
+  // Submitting would be refused (422); say so before the user writes a prompt.
+  const note=p.allowed_models.includes(model)?"":" · 目前主模型是 Base，此預設只支援 SFT：請到「模型與高解析」切回 SFT";
+  const [,,width,height]=S.form||defaults;
+  const big=Number(width)*Number(height)>2166784  // native tier ends at 2.2 MP (1472²)
+    ?` · 超過 2.2 MP 的原生大圖屬${capabilityLabel(S.session,"native_2048")}，建議改用「模型與高解析」分段放大`:"";
+  $("moss-profile-summary").textContent=(p.negative_prompt
+    ?`${name} · ${p.steps} 步 Euler · CFG ${p.cfg} · SLG 22 · ${capabilityLabel(S.session,"quality_50")}`
+    :`SFT bf16 · ${p.steps} 步 · DMD 加速 LoRA · 不使用 CFG 與負向提示詞 · ${capabilityLabel(S.session,"fast_8")}`)+note+big;
+  renderLoras();}
 async function request(url,options={}){
   const headers={...(options.headers||{})};
   if(options.body!==undefined&&!(options.body instanceof Blob)){headers["Content-Type"]="application/json";options.body=JSON.stringify(options.body);}
@@ -27,7 +35,22 @@ async function request(url,options={}){
 }
 function capture(){const [prompt,negative,width,height,seed,layout,profile]=S.form||defaults;
   return {prompt,negative,width:S.canvas.width,height:S.canvas.height,seed,layout_enabled:layout,profile_id:profile,layout_items:S.canvas.items,
-    layout_caption:S.canvas.captionOverride||null,layout_meta:S.canvas.meta||null};}
+    layout_caption:S.canvas.captionOverride||null,layout_meta:S.canvas.meta||null,lora_stack:S.loraStack||[]};}
+// User LoRAs added on the model tab stack only on presets that declare user_loras (quality50).
+async function loadLoras(){try{const {models}=await request("/api/models");
+  S.loras=models.filter(m=>m.role==="user_lora"&&m.state==="ready");}catch{S.loras=[];}renderLoras();}
+const loraStack=()=>(S.loraStack||[]).filter(l=>(S.loras||[]).some(m=>m.id===l.artifact_id));
+function renderLoras(){const box=$("moss-lora");if(!box)return;
+  const usable=(S.form||defaults)[6]==="quality50_v1"&&(S.loras||[]).length>0;box.hidden=!usable;if(!usable)return;
+  const title=document.createElement("strong");title.textContent="自加 LoRA（選填，最多 2 個；只用於精細 50 步）";box.replaceChildren(title);
+  const update=()=>{S.loraStack=[...box.querySelectorAll("div")].map(r=>({artifact_id:r.querySelector("select").value,
+    strength:Number(r.querySelector("input").value)})).filter(l=>l.artifact_id);scheduleSave();};
+  for(let i=0;i<2;i++){const current=(S.loraStack||[])[i];const row=document.createElement("div");
+    const select=document.createElement("select");select.append(new Option("不使用",""));select.setAttribute("aria-label",`自加 LoRA ${i+1}`);
+    for(const m of S.loras)select.append(new Option(`${m.label}（${m.repo}）`,m.id,false,current?.artifact_id===m.id));
+    const strength=document.createElement("input");Object.assign(strength,{type:"number",min:"0",max:"2",step:"0.05",
+      value:String(current?.strength??0.8)});strength.style.width="70px";strength.setAttribute("aria-label",`LoRA ${i+1} 強度`);
+    select.onchange=update;strength.onchange=update;row.append(select," 強度 ",strength);box.append(row);}}
 async function save(){if(S.conflict)throw Error("專案版本衝突，請重新載入或另存草稿");
   const draft=JSON.parse(JSON.stringify(capture()));
   const projectId=S.project.id;
@@ -52,8 +75,9 @@ function scheduleSave(){S.dirty=true;clearTimeout(S.timer);if(S.project&&!S.subm
   S.timer=setTimeout(()=>save().catch(e=>message(e.message)),500);}
 function setForm(values){const old=S.form;S.form=values;
   if(old&&old[0]!==values[0]){S.canvas.captionOverride=null;S.canvas.revision++;S.canvas.render();}
-  if(!old)S.canvas.setSize(Number(values[2]),Number(values[3]));
-  $("moss-confirm-size").hidden=S.canvas.width===Number(values[2])&&S.canvas.height===Number(values[3]);
+  // Sizes apply at once: layout boxes are stored normalised, so they keep their relative place.
+  const width=Number(values[2]),height=Number(values[3]);
+  if(S.canvas.width!==width||S.canvas.height!==height)S.canvas.setSize(width,height);
   if(!old||old[5]!==values[5])S.view=values[5]?"layout":"result";
   showView(S.view);showProfile(values[6]);
 }
@@ -63,7 +87,7 @@ function showView(view){S.view=view;const layout=!!S.form?.[5];
   $("moss-view-controls").style.display=layout?"block":"none";
   $("moss-view-result").disabled=!S.hasResult;}
 async function loadProject(project){S.project=project;S.savedHash=project.draft_hash;S.conflict=false;
-  const d=project.drafts.t2i;
+  const d=project.drafts.t2i;S.loraStack=Array.isArray(d.lora_stack)?d.lora_stack:[];
   const profile=profileOf(d.profile_id)?d.profile_id:S.session.profile_id;
   const values=[d.prompt||"",d.negative||"",d.width||1024,d.height||1024,d.seed||"",!!d.layout_enabled,profile];
   S.canvas.setItems(d.layout_items||[]);S.canvas.captionOverride=d.layout_caption||null;
@@ -122,16 +146,16 @@ window.mossStudio={
   async init(){const session=await request("/api/session");S.csrf=session.csrf;S.session=session;bindProjectMenu();
     $("moss-edit-layout").onclick=()=>showView("layout");
     $("moss-view-result").onclick=()=>showView("result");
-    $("moss-confirm-size").onclick=()=>{S.canvas.setSize(Number(S.form[2]),Number(S.form[3]));
-      $("moss-confirm-size").hidden=true;scheduleSave();};
     S.canvas=new LayoutCanvas(request,scheduleSave,()=>S.form?.[0]||"");
     const runtime=await request("/api/runtime");const gpu=runtime.gpus[0];
     const ram=Number.isFinite(runtime.ram_total_bytes)?`${(runtime.ram_total_bytes/1024**3).toFixed(1)} GiB`:"未知";
-    $("moss-runtime").textContent=`${gpu?gpu.name:"未偵測到 GPU"} · 系統 RAM ${ram} · 開發驗證中`;
+    $("moss-runtime").textContent=`${gpu?gpu.name:"未偵測到 GPU"} · 系統 RAM ${ram} · 開發版`;
     let project;const id=localStorage.getItem("moss_studio_project");
-    if(id)project=await request("/api/projects/"+encodeURIComponent(id));
-    else{project=await request("/api/projects",{method:"POST",body:{name:"未命名創作"}});localStorage.setItem("moss_studio_project",project.id);}
-    const values=await loadProject(project);
+    // A remembered project can be gone (deleted, or a fresh data root on the same origin).
+    if(id)try{project=await request("/api/projects/"+encodeURIComponent(id));}
+      catch(error){if(error.status!==404)throw error;localStorage.removeItem("moss_studio_project");}
+    if(!project){project=await request("/api/projects",{method:"POST",body:{name:"未命名創作"}});localStorage.setItem("moss_studio_project",project.id);}
+    const values=await loadProject(project);loadLoras();
     const pending=localStorage.getItem("moss_studio_pending");
     if(pending){S.pending=JSON.parse(pending);
       try{const found=await request(`/api/jobs/request/${S.pending.project_id}/${S.pending.client_request_id}`);
@@ -139,21 +163,28 @@ window.mossStudio={
       catch(error){message("前次提交尚未確認；按產生圖片以相同內容核對。"+error.message);return values;}}
     const job=localStorage.getItem("moss_studio_job");if(job)poll(job);return values;
   },
-  touch(values){if(!S.canvas||!S.project)return;setForm(values);if(values[5])showView("layout");scheduleSave();},
+  touch(values){if(!S.canvas||!S.project)return;setForm(values);showProfile(values[6]);if(values[5])showView("layout");scheduleSave();},
+  aspectOf(values,presets){const width=Number(values[2]),height=Number(values[3]);
+    return Object.keys(presets).find(k=>presets[k][0]===width&&presets[k][1]===height)||"custom";},
+  applyAspect(aspect,values,presets){const size=presets[aspect];if(!size)return [values[2],values[3]];
+    const next=[...values];next[2]=size[0];next[3]=size[1];this.touch(next);return size;},
+  async refreshSession(){if(!S.session)return;S.session=await request("/api/session");
+    showProfile((S.form||defaults)[6]);await loadLoras();},
   async submit(values){if(S.submitting)return;
     if(active()){message("已有工作進行中；可編輯下一份草稿，或取消目前工作。");return;}
     S.submitting=true;
     try{let payload=S.pending;
       if(!payload){setForm(values);
-      if(!$("moss-confirm-size").hidden)throw Error("請先確認尺寸變更，再產生圖片");
       clearTimeout(S.timer);await save();
+      // The backbone may have been switched on the model tab since this page loaded.
+      S.session=await request("/api/session");
       const [prompt,negative,width,height,seed,layout,profile]=values;
       if(profileOf(profile)&&!profileOf(profile).negative_prompt&&negative.trim())
         throw Error("加速 8 步不使用負向提示詞；請清空進階設定中的負向提示詞，或改用精細 50 步");
       payload={project_id:S.project.id,client_request_id:crypto.randomUUID(),project_revision:S.project.revision,
         task:layout?"layout":"t2i",profile_id:profile,model_artifact_id:S.session.model_artifact_id,
         prompt,negative_prompt:negative,width:Number(width),height:Number(height),seed:seed.trim()||null,
-        references:[],layout:layout?S.canvas.json():null,mask_asset_id:null,control:null,lora_stack:[]};
+        references:[],layout:layout?S.canvas.json():null,mask_asset_id:null,control:null,lora_stack:profile==="quality50_v1"?loraStack():[]};
       S.pending=payload;localStorage.setItem("moss_studio_pending",JSON.stringify(payload));}
       message("正在驗證工作…");const job=await request("/api/jobs",{method:"POST",body:payload});
       S.pending=null;localStorage.removeItem("moss_studio_pending");S.active=job;

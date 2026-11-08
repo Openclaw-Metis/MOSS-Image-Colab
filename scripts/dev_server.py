@@ -56,10 +56,13 @@ class FakeEngine:
 def _output_size(graph: dict, engine: FakeEngine) -> tuple[int, int]:
     from moss_studio.domain.references import scaled_to_total_pixels
 
-    for node in graph.values():
-        inputs = node.get("inputs", {})
-        if isinstance(inputs.get("width"), int) and isinstance(inputs.get("height"), int):
-            return inputs["width"], inputs["height"]
+    sizes = [
+        (inputs["width"], inputs["height"])
+        for inputs in (node.get("inputs", {}) for node in graph.values())
+        if isinstance(inputs.get("width"), int) and isinstance(inputs.get("height"), int)
+    ]
+    if sizes:  # staged upscale graphs size every pass; the last (largest) one is the output
+        return max(sizes, key=lambda size: size[0] * size[1])
     # Edit graphs size the latent from the scaled main image (node 11 → 15 → GetImageSize);
     # inpaint graphs encode the already working-size source from node 11.
     main = graph.get("11", {}).get("inputs", {}).get("image")
@@ -105,9 +108,17 @@ def make_runner(engine: FakeEngine, step_seconds: float):
         draw = ImageDraw.Draw(image)
         draw.rectangle((0, 0, width - 1, height - 1), outline=(29, 78, 216), width=8)
         draw.text((24, 24), f"DEV PLACEHOLDER (not model output) {width}x{height}", fill=(0, 0, 0))
-        buffer = io.BytesIO()
-        image.save(buffer, format="PNG")
-        return [buffer.getvalue()]
+        outputs = [image]
+        # Extra SaveImage nodes (e.g. the estimated control map) come back as auxiliary images.
+        for key in sorted(k for k, n in graph.items() if n.get("class_type") == "SaveImage"):
+            if key != "9":
+                outputs.append(Image.new("RGB", (width, height), (128, 128, 128)))
+        encoded = []
+        for picture in outputs:
+            buffer = io.BytesIO()
+            picture.save(buffer, format="PNG")
+            encoded.append(buffer.getvalue())
+        return encoded
 
     return runner
 

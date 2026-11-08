@@ -1,0 +1,164 @@
+{
+  "criteria": "每案例 3 項必要特徵，滿足至少 2 項且無黑圖或嚴重破圖才算成功；AC-08 另需圖號對應正確；AC-09 另需柔邊外逐像素保留（腳本自動量測）。",
+  "edit": {
+    "e2-coat": {
+      "features": [
+        "人物穿上紅格子外套",
+        "臉與姿勢跟圖 1 一致",
+        "背景跟圖 1 一致"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "refs": [
+        "person",
+        "coat"
+      ],
+      "mapping_ok": true,
+      "notes": "與首輪一樣正確，沒有退步"
+    },
+    "e2-street": {
+      "features": [
+        "背景變成夜晚街道",
+        "人物衣著不變",
+        "人物姿勢不變"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "refs": [
+        "person",
+        "street"
+      ],
+      "mapping_ok": true,
+      "notes": "與首輪一樣正確，沒有退步"
+    },
+    "e2-hat": {
+      "features": [
+        "人物戴上黃色毛帽",
+        "衣著不變",
+        "背景不變"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "refs": [
+        "person",
+        "hat"
+      ],
+      "mapping_ok": true,
+      "notes": "黃色毛帽戴在頭上，首輪的半透明巨大毛帽殘影消失"
+    },
+    "e4-all": {
+      "features": [
+        "穿紅格子外套",
+        "戴黃色毛帽",
+        "背景為夜晚街道"
+      ],
+      "features_met": 0,
+      "severe_artifact": false,
+      "refs": [
+        "person",
+        "coat",
+        "hat",
+        "street"
+      ],
+      "mapping_ok": false,
+      "notes": "殘影消失、畫面乾淨，但外套是駝色不是紅格子、帽子是灰色、背景仍是白底"
+    },
+    "e4-swapped": {
+      "features": [
+        "交換順序後仍穿紅格子外套",
+        "戴黃色毛帽",
+        "背景為夜晚街道"
+      ],
+      "features_met": 0,
+      "severe_artifact": false,
+      "refs": [
+        "person",
+        "street",
+        "hat",
+        "coat"
+      ],
+      "mapping_ok": false,
+      "notes": "同 e4-all：駝色外套、米色帽、白底"
+    },
+    "e4-room": {
+      "features": [
+        "場景為圖 1 客廳",
+        "人物坐在沙發",
+        "穿外套並戴毛帽"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "refs": [
+        "room",
+        "person",
+        "coat",
+        "hat"
+      ],
+      "mapping_ok": false,
+      "notes": "人物坐在圖 1 客廳的沙發上，穿外套戴毛帽；但外套與帽子不是圖 3、圖 4（棕色外套、深色帽）"
+    }
+  },
+  "inpaint": {
+    "i1-plant": {
+      "features": [
+        "選取區出現綠色盆栽",
+        "沙發與牆面不變",
+        "接縫自然"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "notes": "選取區出現白盆龜背芋"
+    },
+    "i2-painting": {
+      "features": [
+        "牆上出現山景畫",
+        "其他區域不變",
+        "接縫自然"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "notes": "牆上山景更明顯，仍像掛軸沒有畫框"
+    },
+    "i3-sweater": {
+      "features": [
+        "上衣變成綠色毛衣",
+        "臉與褲子不變",
+        "接縫自然"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "notes": "綠色毛衣出現；肩線跟著選取框略呈方形"
+    },
+    "i4-lamp": {
+      "features": [
+        "左側出現落地燈",
+        "人物不變",
+        "接縫自然"
+      ],
+      "features_met": 2,
+      "severe_artifact": false,
+      "notes": "仍沒有落地燈（窄框＋純色背景）"
+    },
+    "i5-bicycle": {
+      "features": [
+        "選取區出現紅色腳踏車",
+        "霓虹招牌不變",
+        "接縫自然"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "notes": "紅色腳踏車清楚出現，車身被選取框裁切"
+    }
+  },
+  "control": {},
+  "vision": {},
+  "summary": {
+    "scored_at": "2026-11-08",
+    "recipe": "修圖圖 2～4 為 0.25 MP（圖 1 仍 1 MP）；重繪強度 1.0；程式 df46b02",
+    "edit_2_images": 3,
+    "edit_4_images": 0,
+    "inpaint_by_rule": 5,
+    "inpaint_requested_change_present": 4,
+    "fixtures_identical_to_first_run": true
+  }
+}
