@@ -8,7 +8,10 @@ USAGE_NOTICE = (
 
 
 def _slot(index: int) -> str:
-    title = "圖 1（主圖，決定輸出比例）" if index == 1 else f"圖 {index}"
+    # GPU batch C: with 3-4 pictures the model dropped the extra pictures' content (AC-08 FAIL).
+    title = {1: "圖 1（主圖，決定輸出比例）", 3: "圖 3（實驗）", 4: "圖 4（實驗）"}.get(
+        index, f"圖 {index}"
+    )
     return f"""
  <div class="edit-slot" id="edit-slot-{index}" style="border:1px solid #cbd5e1;border-radius:8px;
    padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0">
@@ -30,7 +33,8 @@ def _slot(index: int) -> str:
 EDIT_HTML = f"""
 <section id="edit-root" style="display:flex;flex-direction:column;gap:12px">
  {USAGE_NOTICE}
- <p id="edit-status" role="status">放入 1～4 張圖片，描述要修改的內容，再按「開始修圖」。</p>
+ <p id="edit-status" role="status">放入 1～2 張圖片（3～4 張為實驗），描述要修改的內容，
+  再按「開始修圖」。</p>
  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">
   {"".join(_slot(i) for i in range(1, 5))}
  </div>
@@ -43,6 +47,10 @@ EDIT_HTML = f"""
   placeholder="Change only the X to Y. Keep the character, face, hair, pose,
  background and composition unchanged."></textarea>
  <p style="color:#475569;margin:0">多張圖時，在指令中說明每張圖的用途（例如「圖 2 的外套」）。</p>
+ <p id="edit-experimental" hidden
+  style="background:#fef3c7;color:#713f12;padding:8px 12px;border-radius:6px">
+  實驗：放入 3～4 張時，模型常沒有把圖 3、圖 4 的內容（顏色、款式、場景）帶進成品。
+  建議一次最多 2 張，分幾次修改。</p>
  <details><summary>進階設定</summary>
   <label>負向提示詞 <textarea id="edit-negative" rows="2"
     style="width:100%;border:1px solid #94a3b8"></textarea></label>
