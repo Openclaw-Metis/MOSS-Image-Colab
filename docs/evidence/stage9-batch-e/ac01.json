@@ -1,0 +1,10 @@
+{
+  "source_commit": "557abc770fbad6168e03957df147db3c1cd3ca74",
+  "engine_reused": true,
+  "engine_pid": 5076,
+  "app_reused": true,
+  "app_pid": 7875,
+  "weights_checked": 4,
+  "weights_unchanged": true,
+  "passed": true
+}

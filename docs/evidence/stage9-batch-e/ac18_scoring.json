@@ -1,0 +1,62 @@
+{
+  "criteria": "每案例 3 項必要特徵，滿足至少 2 項且無黑圖或嚴重破圖才算成功；各類 ≥4/5（80%）為通過",
+  "general": {
+    "g1-portrait": {
+      "features": [
+        "白鬍子的年長漁夫",
+        "黃色雨衣",
+        "淺景深人像攝影"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "notes": "白鬍子年長漁夫、黃色雨衣、淺景深"
+    },
+    "g2-landscape": {
+      "features": [
+        "梯田",
+        "日出與山谷霧氣",
+        "右側有小木屋"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "notes": "梯田、日出與谷霧、右側小木屋"
+    },
+    "g3-product": {
+      "features": [
+        "霧面黑色陶瓷杯",
+        "淺色木桌",
+        "杯口冒熱氣"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "notes": "霧面黑色陶瓷杯、淺色木桌、冒熱氣"
+    },
+    "g4-illustration": {
+      "features": [
+        "紅狐狸在睡覺",
+        "綠色大樹",
+        "扁平向量插畫風格"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "notes": "睡著的紅狐狸、綠色大樹、扁平插畫"
+    },
+    "g5-interior": {
+      "features": [
+        "藍色絨布扶手椅",
+        "放滿書的高書架",
+        "暖光落地燈"
+      ],
+      "features_met": 3,
+      "severe_artifact": false,
+      "notes": "藍色絨布扶手椅、滿書的高書架、暖光落地燈"
+    }
+  },
+  "summary": {
+    "scored_at": "2026-11-08",
+    "general_success": 5,
+    "general_total": 5,
+    "inpaint_from_batch_c_retest": "要求的物件出現 4/5、柔邊外逐像素保留 5/5",
+    "ac18": "兩類都 ≥80%，通過"
+  }
+}

@@ -1,0 +1,12 @@
+OK    t2i quality50
+OK    t2i fast8
+OK    layout
+OK    edit 1 image
+OK    edit 4 images
+OK    inpaint
+OK    control mask
+OK    control depth
+OK    control upload + colour
+OK    vision
+OK    upscale 1024→2048
+{"graphs": 11, "failures": 0}
