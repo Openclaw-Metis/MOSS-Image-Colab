@@ -1,6 +1,11 @@
 # MOSS-Image-Colab
 目標是在 Google Colab 以 ComfyUI 無頭引擎與 Gradio 五分頁執行 MOSS-Image。
 
+[![在 Colab 開啟](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Openclaw-Metis/MOSS-Image-Colab/blob/main/notebooks/MOSS_Image_Colab.ipynb)
+
+點上方按鈕在 Colab 開啟 Notebook，執行階段選 **L4 GPU**，依序執行第 1～4 格，再點第 4 格印出的登入連結。
+詳細步驟見 [使用說明](docs/user-guide.md)。
+
 **開發中（規格 [v1.3.0](specs/requirements.md)）。** Stage 0～8 已在 Colab L4 完成 GPU 驗收：多數 PASS，
 修圖 3～4 張與輪廓控制未通過、介面標為實驗或改用預設深度；Stage 9 回歸與 Stage 10 交付進行中。
 各功能狀態以介面標示為準（來源 `configs/capabilities.json`），進度見 [todo.md](todo.md)。
