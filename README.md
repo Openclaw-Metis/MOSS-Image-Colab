@@ -1,8 +1,9 @@
 # MOSS-Image-Colab
 目標是在 Google Colab 以 ComfyUI 無頭引擎與 Gradio 五分頁執行 MOSS-Image。
 
-**開發中，尚非已驗收的完整生圖工具。** 依 [規格 v1.3.0](specs/requirements.md)：Stage 0、1 已 PASS；
-Stage 2～8 程式完成，但 GPU 驗收批次尚未執行，未跑的項目不算通過。進度見 [todo.md](todo.md)。
+**開發中（規格 [v1.3.0](specs/requirements.md)）。** Stage 0～8 已在 Colab L4 完成 GPU 驗收：多數 PASS，
+修圖 3～4 張與輪廓控制未通過、介面標為實驗或改用預設深度；Stage 9 回歸與 Stage 10 交付進行中。
+各功能狀態以介面標示為準（來源 `configs/capabilities.json`），進度見 [todo.md](todo.md)。
 
 五分頁：文生圖與排版（精細 50 步／加速 8 步、拉框含人物框）、多圖指令修圖（1～4 張）、筆刷局部重繪、
 視覺與深度控制（色彩／深度；視覺參考為實驗）、模型與高解析（固定清單下載、主模型切換、分段放大）。

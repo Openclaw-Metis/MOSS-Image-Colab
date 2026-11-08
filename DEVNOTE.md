@@ -1,9 +1,9 @@
 # SNAPSHOT
-2026-11-08（Claude Code）：規格 v1.3.0。Stage 0～3 PASS（main 8a6f07f）；Stage 4～8 程式完成。
-分支 batch-cd-2026.11.07：AC-19 使用者接受限制（結案）、MoGe 估計圖預覽、模型刪除（使用中阻擋）、
-修圖／重繪／視覺分頁跟隨使用中主模型、批次 C／D 自動腳本與 Notebook 第 7～9 格。批次 C、D 尚未在 GPU 執行。
-本機（Windows 11、Python 3.13.15）207 passed、7 skipped，ruff 通過。
-本機另完成（未推送）：各分頁的 GPU 驗收字樣改由 configs/capabilities.json 經 /api/session 提供；自加 HF LoRA。
+2026-11-08（Claude Code）：規格 v1.3.0。分支 batch-cd-2026.11.07（已推送，未合併 main）。
+Stage 0～3、5、7、8 PASS；Stage 4、6 有條件通過（修圖 3～4 張、輪廓控制未通過，使用者接受限制並在介面標示）。
+GPU 批次 C、D、兩次重測與 AC-15 新 VM 匯入都已完成，證據在 docs/evidence/stage4-6-batch-c、stage7-8-batch-d。
+Stage 9 依使用者選擇跑精簡批次 E（AC-01、preflight、契約測試、AC-06、AC-18），Stage 10 交付文件起草中（docs/user-guide.md）。
+本機（Windows 11、Python 3.13.15）212 passed、7 skipped，ruff 通過。
 
 # DECISIONS
 v1.3：視覺參考降為實驗；2K 改為原生 ≤2.2 MP＋分段放大，原生 2048² 為實驗；刪 FP8 編碼器；
@@ -57,3 +57,5 @@ Colab：ROOT=/content/moss-stage1、資料 /content/moss-studio、證據 /conten
 同日透過使用者 Chrome 在 Colab L4 跑 GPU 批次 A、B，證據下載後整理入 docs/evidence；執行階段已刪除。
 PR #1 合併進 main（8a6f07f）。使用者接受 AC-19 限制並指示續做批次 C、D 腳本、程式缺口與 Stage 9～10。
 2026-11-08：批次 C／D 腳本、模型刪除與主模型同步修正完成並通過假引擎試跑，推送分支 batch-cd-2026.11.07。
+2026-11-08：GPU 批次 C 抓到兩個只在真引擎出現的驗證錯誤（LoadImage 列舉、autogrow），修正並加 engine_preflight；
+評分後修正多圖參考圖尺寸與重繪預設強度並重測；批次 D 與 AC-15（新 VM）通過；新增一次性登入連結、比例預設、HF_TOKEN 選項。
