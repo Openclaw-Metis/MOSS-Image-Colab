@@ -42,7 +42,7 @@ python scripts/dev_server.py --data-root .runtime/dev --port 7861
 ```
 
 證據：[Stage 0](docs/stages/stage0.md)、[Stage 1](docs/stages/stage1.md)、[Stage 2](docs/stages/stage2.md)、
-[Stage 3～8](docs/stages/stage3-8.md)、[Stage 9](docs/stages/stage9.md)、[相容性](docs/compatibility.md)。
+[Stage 3～8](docs/stages/stage3-8.md)、[Stage 9](docs/stages/stage9.md)、[Stage 10](docs/stages/stage10.md)、[相容性](docs/compatibility.md)。
 
 模型權重、使用者素材與憑證不入版控。`docs/evidence/` 僅保留本專案測試生成的範例與驗證紀錄。
 Colab VM 回收會失去本地資料；請下載作品，或用專案選單匯出專案 ZIP。

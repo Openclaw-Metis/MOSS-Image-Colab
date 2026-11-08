@@ -3,7 +3,8 @@
 Stage 0～3、5、7、8 PASS；Stage 4、6 有條件通過（修圖 3～4 張、輪廓控制未通過，使用者接受限制並在介面標示）。
 GPU 批次 C、D、兩次重測與 AC-15 新 VM 匯入都已完成，證據在 docs/evidence/stage4-6-batch-c、stage7-8-batch-d。
 Stage 9 精簡批次 E（AC-01、preflight、契約測試、AC-06、AC-18）與 AC-03 通道實測都已完成（docs/evidence/stage9-batch-e、stage9-ac03）；
-必要 AC 除 AC-08、AC-11 有條件通過外全數 PASS。Stage 10 交付文件起草中（docs/user-guide.md）。
+必要 AC 除 AC-08、AC-11 有條件通過外全數 PASS。Stage 10 文件完成（docs/stages/stage10.md），
+剩 PR #2 合併進 main 後依 README 在乾淨 L4 重演；Colab 執行階段已由使用者刪除。
 本機（Windows 11、Python 3.13.15）212 passed、7 skipped，ruff 通過。
 
 # DECISIONS

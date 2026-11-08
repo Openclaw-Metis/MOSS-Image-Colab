@@ -13,7 +13,7 @@
 - [x] Stage 8：專案 ZIP 匯出入。PASS（AC-15 新 VM 匯入 hash 與草稿一致、續編成功）。
 - [x] Stage 9：精簡批次 E（使用者 2026-11-08 選擇）：AC-01、preflight、VM 上契約測試、AC-06、AC-18 一般生成；其餘沿用批次 A～D。
   AC-03 通道實測通過。總表見 docs/stages/stage9.md。
-- [ ] Stage 10：交付文件（使用說明已起草於 docs/user-guide.md）、依 README 在乾淨 L4 重演。
+- [ ] Stage 10：交付文件完成（docs/stages/stage10.md）；剩「PR #2 合併進 main 後，依 README 在乾淨 L4 重演」。
 
 GPU 批次腳本：`scripts/batch_c_eval.py`、`batch_d_eval.py`、`batch_e_eval.py`（共用 `batch_runner.py`，每例檢查點、重跑不重送），
 開跑前先在 VM 跑 `scripts/engine_preflight.py`。Notebook 第 7～10 格；AC-15 第二段需在新的 Colab 工作階段上傳匯出檔（第 9 格）。
