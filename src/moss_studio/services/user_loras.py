@@ -35,11 +35,13 @@ def validate_source(repo, revision, path) -> tuple[str, str, str]:
 
 
 def hub_file_pin(repo: str, revision: str, path: str) -> dict:
-    """Asks the Hub (anonymously) for the LFS SHA256 and size of that file at that commit."""
+    """Asks the Hub for the LFS SHA256 and size of that file at that commit."""
     from huggingface_hub import HfApi
 
+    from moss_studio.services.downloads import hub_token  # local: downloads imports this module
+
     try:
-        (info,) = HfApi().get_paths_info(repo, [path], revision=revision, token=False)
+        (info,) = HfApi().get_paths_info(repo, [path], revision=revision, token=hub_token())
     except ValueError as exc:  # unpacking: the path does not exist at that commit
         raise ValidationError("此 commit 找不到這個檔案") from exc
     except Exception as exc:  # noqa: BLE001 - network/HTTP errors may embed URLs; keep it plain

@@ -170,6 +170,16 @@ def fetch_with_retry(artifact: dict, staging: Path, fetch, *, sleep=None) -> Pat
     raise AssertionError("unreachable")
 
 
+def hub_token() -> str | bool:
+    """Optional HF token from Colab Secrets (the notebook puts it in HF_TOKEN), else anonymous.
+
+    Only public, pinned files are fetched; a token just lifts anonymous rate limits and speed.
+    It is never logged or stored. huggingface_hub drops it before following a redirect to a
+    signed CDN on another host (checked in the pinned 1.33.0, file_download.py).
+    """
+    return os.environ.get("HF_TOKEN", "").strip() or False
+
+
 def _hf_fetch(artifact: dict, staging: Path) -> Path:
     # Verified against the pinned hf_xet 1.8 XetConfig; set before its global session exists.
     os.environ.setdefault("HF_XET_CLIENT_AC_MAX_DOWNLOAD_CONCURRENCY", "2")
@@ -183,7 +193,7 @@ def _hf_fetch(artifact: dict, staging: Path) -> Path:
             filename=source_path(artifact),
             revision=artifact["revision"],
             local_dir=staging,
-            token=False,
+            token=hub_token(),
         )
     )
 

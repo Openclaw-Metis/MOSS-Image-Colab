@@ -155,3 +155,28 @@ def test_retry_after_is_respected(tmp_path, artifact):
 
     fetch_with_retry(spec, tmp_path, fetch, sleep=delays.append)
     assert delays == [120]
+
+
+def test_hub_token_comes_only_from_the_environment(tmp_path, artifact, monkeypatch):
+    import huggingface_hub
+
+    from moss_studio.services import downloads
+
+    meta, data = artifact
+    seen = []
+
+    def fake_download(**kwargs):
+        seen.append(kwargs["token"])
+        path = tmp_path / "staging-copy.safetensors"
+        path.write_bytes(data)
+        return str(path)
+
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_download)
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+    downloads._hf_fetch(meta, tmp_path)
+    monkeypatch.setenv("HF_TOKEN", "  hf_test_only_value  ")
+    downloads._hf_fetch(meta, tmp_path)
+    monkeypatch.setenv("HF_TOKEN", "   ")
+    downloads._hf_fetch(meta, tmp_path)
+    # Anonymous unless a token is set; whitespace-only counts as unset.
+    assert seen == [False, "hf_test_only_value", False]
