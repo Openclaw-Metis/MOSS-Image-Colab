@@ -100,10 +100,13 @@
     {
       "id": "project_archive",
       "class": "required",
-      "state": "unverified",
-      "evidence": [],
+      "state": "verified",
+      "evidence": [
+        "docs/evidence/stage7-8-batch-d/ac15_manifest.json",
+        "docs/evidence/stage7-8-batch-d/ac15_import_report.json"
+      ],
       "workflow_hash": null,
-      "reason": "AC-15 第一段（匯出 1.68 MB 專案檔）完成；新 VM 匯入比對與續編進行中"
+      "reason": "AC-15：匯出 1.68 MB 專案檔，在新 VM 匯入後 4 個素材 hash 與五個分頁草稿完全一致，續編重繪與文生圖成功"
     },
     {
       "id": "vision_reference",
