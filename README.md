@@ -7,7 +7,7 @@
 詳細步驟見 [使用說明](docs/user-guide.md)。
 
 **開發中（規格 [v1.3.0](specs/requirements.md)）。** Stage 0～8 已在 Colab L4 完成 GPU 驗收：多數 PASS，
-修圖 3～4 張與輪廓控制未通過、介面標為實驗或改用預設深度；Stage 9 回歸與 Stage 10 交付進行中。
+修圖 3～4 張與輪廓控制未通過、介面標為實驗或改用預設深度；Stage 9 回歸（含 Cloudflare 通道完整流程）已完成，Stage 10 交付進行中。
 各功能狀態以介面標示為準（來源 `configs/capabilities.json`），進度見 [todo.md](todo.md)。
 
 五分頁：文生圖與排版（精細 50 步／加速 8 步、拉框含人物框）、多圖指令修圖（1～2 張；3～4 張為實驗）、筆刷局部重繪、
@@ -42,7 +42,7 @@ python scripts/dev_server.py --data-root .runtime/dev --port 7861
 ```
 
 證據：[Stage 0](docs/stages/stage0.md)、[Stage 1](docs/stages/stage1.md)、[Stage 2](docs/stages/stage2.md)、
-[Stage 3～8](docs/stages/stage3-8.md)、[相容性](docs/compatibility.md)。
+[Stage 3～8](docs/stages/stage3-8.md)、[Stage 9](docs/stages/stage9.md)、[相容性](docs/compatibility.md)。
 
 模型權重、使用者素材與憑證不入版控。`docs/evidence/` 僅保留本專案測試生成的範例與驗證紀錄。
 Colab VM 回收會失去本地資料；請下載作品，或用專案選單匯出專案 ZIP。
