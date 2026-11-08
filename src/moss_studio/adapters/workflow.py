@@ -140,12 +140,17 @@ def compile_edit(
     for index, name in enumerate(engine_names):
         load, scale = str(11 + index), str(15 + index)
         graph[load] = {"class_type": "LoadImage", "inputs": {"image": name}}
+        # Picture 1 sets the output size; the others only lend content, and at full size they
+        # tend to be pasted in as translucent layers (GPU batch C), so they are scaled down.
+        megapixels = profile["reference_megapixels"]
+        if index:
+            megapixels = profile.get("secondary_reference_megapixels", megapixels)
         graph[scale] = {
             "class_type": "ImageScaleToTotalPixels",
             "inputs": {
                 "image": [load, 0],
                 "upscale_method": "lanczos",
-                "megapixels": profile["reference_megapixels"],
+                "megapixels": megapixels,
                 "resolution_steps": 16,
             },
         }

@@ -37,7 +37,8 @@ INPAINT_HTML = f"""
   placeholder="描述塗抹區域要畫成什麼，例如：一束紅色玫瑰"></textarea>
  <div style="display:flex;gap:16px;flex-wrap:wrap">
   <label>重繪幅度 <input id="inpaint-denoise" type="range" min="0.05" max="1" step="0.05"
-    value="0.65"> <output id="inpaint-denoise-value">0.65</output></label>
+    value="1"> <output id="inpaint-denoise-value">1.00</output></label>
+  <span style="color:#475569">要加入新東西請用 1.00；只想微調質感或顏色再調低。</span>
   <label>邊緣柔和度 <input id="inpaint-softness" type="range" min="0" max="1" step="0.05"
     value="0.15"> <output id="inpaint-softness-value">0.15</output></label>
  </div>

@@ -195,10 +195,37 @@ def scoring_template(cases: dict) -> dict:
     }
 
 
-def run(destination: Path, sections: set[str], base_url: str) -> dict:
-    cases = json.loads(FIXTURE.read_text(encoding="utf-8"))
+def retest_cases(cases: dict, only: set[str] | None, inpaint_denoise: float | None) -> dict:
+    """Re-run frozen cases after a recipe fix: same prompts, seeds and features, fewer cases."""
+    known = {c["id"] for s in ("edit", "inpaint", "control", "vision") for c in cases[s]}
+    if only:
+        if only - known:
+            raise SystemExit(f"未知案例：{sorted(only - known)}")
+        for section in ("edit", "inpaint", "control", "vision"):
+            cases[section] = [c for c in cases[section] if c["id"] in only]
+        cases["control_off"] = [c for c in cases["control_off"] if c in only]
+    if inpaint_denoise is not None:
+        for case in cases["inpaint"]:
+            case["denoise"] = inpaint_denoise
+    return cases
+
+
+def run(
+    destination: Path,
+    sections: set[str],
+    base_url: str,
+    only: set[str] | None = None,
+    inpaint_denoise: float | None = None,
+) -> dict:
+    cases = retest_cases(json.loads(FIXTURE.read_text(encoding="utf-8")), only, inpaint_denoise)
     with ProductClient(base_url) as client:
         report = BatchReport(destination, client, "GPU 批次 C", FIXTURE)
+        if only or inpaint_denoise is not None:
+            report.data["retest"] = {
+                "cases": sorted(only or []),
+                "inpaint_denoise": inpaint_denoise,
+            }
+            report.save()
         fixtures = make_fixtures(report, cases)
         if "edit" in sections:
             for case in cases["edit"]:
@@ -282,8 +309,16 @@ if __name__ == "__main__":
     # Another loopback port targets the fake-engine dev server for a dry run of this script;
     # such a run is never GPU evidence.
     parser.add_argument("--base-url", default="http://127.0.0.1:7860")
+    parser.add_argument("--cases", nargs="+", help="只重跑這些案例 id（修正後重測用）")
+    parser.add_argument("--inpaint-denoise", type=float, help="重測時覆寫重繪強度")
     args = parser.parse_args()
-    result = run(args.destination, set(args.only), args.base_url)
+    result = run(
+        args.destination,
+        set(args.only),
+        args.base_url,
+        set(args.cases) if args.cases else None,
+        args.inpaint_denoise,
+    )
     print(
         json.dumps(
             {

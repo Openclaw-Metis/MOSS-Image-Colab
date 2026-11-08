@@ -50,7 +50,7 @@ async function showSource(){const img=$("inpaint-source");
 async function loadProject(project){P.project=project;const d=project.drafts.inpaint||{};
   P.source=d.source||null;P.maskAssetId=d.mask_asset_id||null;
   $("inpaint-prompt").value=d.prompt||"";$("inpaint-negative").value=d.negative||"";$("inpaint-seed").value=d.seed||"";
-  $("inpaint-denoise").value=d.denoise??0.65;$("inpaint-softness").value=d.edge_softness??0.15;
+  $("inpaint-denoise").value=d.denoise??1;$("inpaint-softness").value=d.edge_softness??0.15;
   P.saver.setSavedHash(project.draft_hashes.inpaint);await showSource();featherText();}
 
 async function followProject(){const id=localStorage.getItem("moss_studio_project");

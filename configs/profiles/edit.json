@@ -16,5 +16,7 @@
   "default_negative_prompt": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact",
   "edit_format": "Moss-Image-Edit",
   "reference_megapixels": 1.0,
+  "secondary_reference_megapixels": 0.25,
+  "secondary_reference_note": "Picture 2-4 at ~512 px long edge (batch C 2026-11-08: at 1 MP each, 2-4 image edits pasted the references as translucent layers; community guide Chenkin-x/ComfyUI-Moss-Image-Edit starts from a 512 px reference limit). Picture 1 stays at 1 MP and sets the output size.",
   "state": "probing"
 }

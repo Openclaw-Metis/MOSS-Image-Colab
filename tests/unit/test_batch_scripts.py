@@ -84,3 +84,18 @@ def test_batch_d_compat_cases_cover_models_profiles_and_loras():
     assert {c.get("model_artifact_id") for c in cases.values()} >= {"base_bf16", "qwen_int8"}
     assert sum("lora_stack" in c for c in cases.values()) == 3
     assert cases["inpaint_with_lora"]["mask_asset_id"] == "compat-mask-id"
+
+
+def test_retest_keeps_frozen_cases_but_runs_only_the_named_ones():
+    import copy
+
+    import pytest
+
+    picked = batch_c_eval.retest_cases(copy.deepcopy(CASES), {"e4-all", "i1-plant"}, 1.0)
+    assert [c["id"] for c in picked["edit"]] == ["e4-all"]
+    assert [(c["id"], c["denoise"]) for c in picked["inpaint"]] == [("i1-plant", 1.0)]
+    assert picked["control"] == [] and picked["vision"] == [] and picked["control_off"] == []
+    original = next(c for c in CASES["edit"] if c["id"] == "e4-all")
+    assert picked["edit"][0] == original  # prompt, seed, refs and features untouched
+    with pytest.raises(SystemExit):
+        batch_c_eval.retest_cases(copy.deepcopy(CASES), {"nope"}, None)

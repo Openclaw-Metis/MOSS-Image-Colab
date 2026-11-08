@@ -30,7 +30,7 @@ function render(){
 async function loadProject(project){C.project=project;const d=project.drafts.control||{};
   C.assets=d.assets||{};
   if(d.mode)document.querySelector(`input[name="control-mode"][value="${d.mode}"]`).checked=true;
-  $("control-geometry").value=d.geometry||"mask";$("control-strength").value=d.strength??1;
+  $("control-geometry").value=d.geometry||"depth";$("control-strength").value=d.strength??1;
   $("control-end").value=d.end_percent??0.6;$("vision-strength").value=d.image_strength??1;
   $("vision-width").value=d.width||1024;$("vision-height").value=d.height||1024;
   $("control-prompt").value=d.prompt||"";$("control-negative").value=d.negative||"";$("control-seed").value=d.seed||"";
@@ -53,7 +53,7 @@ async function upload(slot,file){if(!file)return;
   finally{$(`${slot}-file`).value="";}}
 
 function remove(slot){delete C.assets[slot];
-  if(slot==="control-depth"&&$("control-geometry").value==="upload")$("control-geometry").value="mask";
+  if(slot==="control-depth"&&$("control-geometry").value==="upload")$("control-geometry").value="depth";
   render();C.saver.schedule();}
 
 // Colour/depth control is trained on SFT; the experimental vision mode follows the active backbone.
