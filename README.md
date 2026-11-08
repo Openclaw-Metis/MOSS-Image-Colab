@@ -139,3 +139,9 @@ GPU 批次腳本與驗收流程見 [todo.md](todo.md)；交接狀態見 [DEVNOTE
 - 階段紀錄：[Stage 0](docs/stages/stage0.md)、[Stage 1](docs/stages/stage1.md)、[Stage 2](docs/stages/stage2.md)、
   [Stage 3～8](docs/stages/stage3-8.md)、[Stage 9](docs/stages/stage9.md)、[Stage 10](docs/stages/stage10.md)
 - [相容性](docs/compatibility.md)：實測環境、參數來源與 GPU 驗收後的調整
+
+## 授權
+
+本倉庫的程式碼與文件以 [Apache License 2.0](LICENSE) 授權。
+模型權重不在本倉庫內，各自依提供者的授權（見[模型來源](#模型來源)）；
+ComfyUI 等執行時才下載的第三方軟體，也依它們各自的授權。
