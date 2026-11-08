@@ -59,7 +59,7 @@ def test_edit_graph_feeds_same_ordered_images_to_both_encoders(job_spec):
         assert inputs["edit_format"] == "Moss-Image-Edit" and inputs["vae"] == ["3", 0]
     assert graph["4"]["inputs"]["prompt"] == spec["prompt"]
     assert graph["15"]["inputs"]["megapixels"] == 1.0  # Picture 1 sets the output size
-    assert graph["16"]["inputs"]["megapixels"] == 0.25  # the rest only lend content
+    assert graph["16"]["inputs"]["megapixels"] == 0.5  # the rest only lend content
     assert graph["15"]["inputs"]["resolution_steps"] == 16
     assert graph["10"]["inputs"]["image"] == ["15", 0]  # latent follows the scaled main image
     assert graph["30"]["inputs"]["lora_name"] == "moss_image_edit_lora_rank_64_bf16.safetensors"
