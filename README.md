@@ -7,7 +7,7 @@
 詳細步驟見 [使用說明](docs/user-guide.md)。
 
 **開發中（規格 [v1.3.0](specs/requirements.md)）。** Stage 0～8 已在 Colab L4 完成 GPU 驗收：多數 PASS，
-修圖 3～4 張與輪廓控制未通過、介面標為實驗或改用預設深度；Stage 9 回歸（含 Cloudflare 通道完整流程）已完成，Stage 10 交付進行中。
+修圖 3～4 張與輪廓控制未通過、介面標為實驗或改用預設深度；Stage 9 回歸（含 Cloudflare 通道完整流程）與 Stage 10 交付（含依 README 在乾淨 L4 重演）都已完成。
 各功能狀態以介面標示為準（來源 `configs/capabilities.json`），進度見 [todo.md](todo.md)。
 
 五分頁：文生圖與排版（精細 50 步／加速 8 步、拉框含人物框）、多圖指令修圖（1～2 張；3～4 張為實驗）、筆刷局部重繪、

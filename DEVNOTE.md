@@ -1,10 +1,11 @@
 # SNAPSHOT
-2026-11-08（Claude Code）：規格 v1.3.0。批次分支已經 PR #2 合併進 main（8218cc3）；目前分支 cell2-feature-models-2026.11.08。
+2026-11-08（Claude Code）：規格 v1.3.0。PR #2（8218cc3）、PR #3（b00af07）已合併進 main；目前分支 stage10-rehearsal-2026.11.08。
 Stage 0～3、5、7、8 PASS；Stage 4、6 有條件通過（修圖 3～4 張、輪廓控制未通過，使用者接受限制並在介面標示）。
 GPU 批次 C、D、兩次重測與 AC-15 新 VM 匯入都已完成，證據在 docs/evidence/stage4-6-batch-c、stage7-8-batch-d。
 Stage 9 精簡批次 E（AC-01、preflight、契約測試、AC-06、AC-18）與 AC-03 通道實測都已完成（docs/evidence/stage9-batch-e、stage9-ac03）；
 必要 AC 除 AC-08、AC-11 有條件通過外全數 PASS。Stage 10 文件完成（docs/stages/stage10.md），
-剩依 README 在乾淨 L4 重演（使用者決定之後再做）；Colab 執行階段已由使用者刪除。
+使用者已依 README 在乾淨 L4 重演並回報正常（含第 2 格預設下載，未取回證據檔），Stage 10 完成；仍是開發版。
+剩下未驗：自加 HF LoRA 的 GPU 實測。
 本機（Windows 11、Python 3.13.15）213 passed、7 skipped，ruff 通過。
 
 # DECISIONS
@@ -64,4 +65,5 @@ PR #1 合併進 main（8a6f07f）。使用者接受 AC-19 限制並指示續做�
 2026-11-08：GPU 批次 C 抓到兩個只在真引擎出現的驗證錯誤（LoadImage 列舉、autogrow），修正並加 engine_preflight；
 評分後修正多圖參考圖尺寸與重繪預設強度並重測；批次 D 與 AC-15（新 VM）通過；新增一次性登入連結、比例預設、HF_TOKEN 選項。
 2026-11-08：精簡批次 E 通過；同一台 VM 經 Cloudflare 通道實測 AC-03（登入連結、上傳、進度、取消、重連、下載、無 SSE）通過。
-2026-11-08：Stage 10 文件完成，PR #2 合併進 main（8218cc3）；第 2 格改為預設下載 Base 以外的全部模型（Notebook 未在 Colab 實跑）。
+2026-11-08：Stage 10 文件完成，PR #2 合併進 main（8218cc3）；第 2 格改為預設下載 Base 以外的全部模型（PR #3）。
+2026-11-08：使用者自行依 README 在乾淨 L4 重演（main b00af07），回報各項正常；Stage 10 完成。
