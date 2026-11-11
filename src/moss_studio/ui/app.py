@@ -12,7 +12,19 @@ from moss_studio.ui.edit_component import EDIT_HTML
 from moss_studio.ui.inpaint_component import INPAINT_HTML
 from moss_studio.ui.layout_component import LAYOUT_HTML
 from moss_studio.ui.models_component import MODELS_HTML
-from moss_studio.ui.workbench_parts import GALLERY_HTML, WORKBENCH_CSS, result_panel, status_line
+from moss_studio.ui.workbench_parts import (
+    GALLERY_HTML,
+    WORKBENCH_CSS,
+    first_steps,
+    result_panel,
+    status_line,
+)
+
+T2I_STEPS = first_steps(
+    "輸入想要的畫面，或點左側的範例填入一組實測過的設定。",
+    "選畫面比例與繪製方式：加速 8 步約 15 秒，精細 50 步約 2 分鐘（L4、1 MP 實測）。",
+    "按「產生圖片」。完成後可下載，或用結果下方的「接著做」送去修圖、局部重繪或放大。",
+)
 
 PROJECT_MENU_HTML = """
 <div id="project-menu" style="display:flex;flex-direction:column;gap:8px">
@@ -81,6 +93,12 @@ def build_ui(service):
                             lines=5,
                             placeholder="例如：米白色山景旅遊海報，標題為「山間慢旅」。",
                         )
+                        gr.HTML('<p class="moss-muted">第一次使用？點一個範例填入設定：</p>')
+                        with gr.Row(elem_id="moss-examples"):
+                            example_buttons = [
+                                (gr.Button(example["label"], size="sm", min_width=120), example)
+                                for example in service.examples["t2i"]
+                            ]
                         layout_on = gr.Checkbox(label="啟用畫框排版", value=False)
                         aspect = gr.Radio(
                             choices=ASPECT_CHOICES,
@@ -128,11 +146,7 @@ def build_ui(service):
                             "</button></div>"
                         )
                         gr.HTML(LAYOUT_HTML)
-                        gr.HTML(
-                            result_panel(
-                                "moss", "生成結果", "還沒有作品。輸入描述後按「產生圖片」。"
-                            )
-                        )
+                        gr.HTML(result_panel("moss", "生成結果", T2I_STEPS))
             with gr.Tab("多圖指令修圖") as edit_tab:
                 gr.HTML(EDIT_HTML)
             # Coming back from the model tab: show the backbone that is now active.
@@ -178,6 +192,15 @@ def build_ui(service):
             outputs=[width, height],
             js=f"(a,...v)=>window.mossStudio.applyAspect(a,v,{presets})",
         )
+        for button, example in example_buttons:
+            button.click(
+                fn=None,
+                outputs=[*form, aspect],
+                js=(
+                    f"()=>{{const v=window.mossStudio.applyExample({json.dumps(example['id'])});"
+                    f"return {with_aspect};}}"
+                ),
+            )
         generate.click(
             fn=None, inputs=form, js="async(...values)=>{await window.mossStudio.submit(values);}"
         )

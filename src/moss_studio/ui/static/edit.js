@@ -1,5 +1,5 @@
 import {request,session,currentProject,pollJob,draftSaver,capabilityLabel} from "/static/api.js";
-import {setStatus,setBusy,running,reveal,pictureDrop,onPastePicture,showResult,takeHandoff,handoffFile} from "/static/widgets.js";
+import {setStatus,setBusy,running,reveal,pictureDrop,onPastePicture,showResult,takeHandoff,handoffFile,exampleChips,replacePrompt} from "/static/widgets.js";
 const $=(id)=>document.getElementById(id);
 const SLOTS=[1,2,3,4];
 const E={project:null,slots:[null,null,null,null],active:null,pollToken:0,submitting:false,
@@ -116,6 +116,8 @@ window.mossEdit={
     for(const id of ["edit-prompt","edit-negative","edit-seed"])$(id).oninput=()=>E.saver.schedule();
     $("edit-renumber").onclick=renumber;$("edit-submit").onclick=submit;$("edit-cancel").onclick=cancel;
     onPastePicture(root,uploadToFree);
+    exampleChips("edit-examples",s.examples.edit,(example)=>{if(!replacePrompt($("edit-prompt"),example.prompt))return;
+      E.saver.schedule();message(example.hint);});
     try{await loadProject(await currentProject());}catch(error){message(error.message,"error");return;}
     await receive();
     const pending=localStorage.getItem("moss_edit_pending");

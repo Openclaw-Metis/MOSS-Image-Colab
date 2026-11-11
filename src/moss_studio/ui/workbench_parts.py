@@ -84,6 +84,12 @@ a.moss-button.moss-primary{color:#fff!important}
 .moss-actions,.moss-actions-next{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .moss-actions-next{color:#475569;flex-basis:100%}
 .moss-shortcut{color:#64748b;font-size:13px;margin:0}
+.moss-examples{display:flex;gap:6px;flex-wrap:wrap;align-items:center;color:#475569}
+.moss-tab button.moss-chip{min-height:30px;padding:3px 12px;border-radius:999px;font-weight:400;
+ font-size:14px;background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a}
+.moss-steps{text-align:left;max-width:30em;margin:0;padding-left:1.4em;line-height:1.7;
+ list-style:decimal}
+.moss-steps li{margin:2px 0}
 #moss-gallery{margin-top:16px;border:1px solid #cbd5e1;border-radius:8px;padding:10px 14px;
  background:#fff;color:#0f172a}
 #moss-gallery>summary{cursor:pointer;font-weight:600}
@@ -124,6 +130,16 @@ def result_panel(prefix: str, alt: str, empty: str) -> str:
   <p id="{prefix}-result-summary" class="moss-muted"></p>
   <div id="{prefix}-result-actions" class="moss-actions" hidden></div>
  </section>"""
+
+
+def first_steps(*steps: str) -> str:
+    """Empty-state walkthrough: the result area is free until there is a result to show."""
+    return '<ol class="moss-steps">' + "".join(f"<li>{step}</li>" for step in steps) + "</ol>"
+
+
+def examples_row(prefix: str) -> str:
+    # Filled by widgets.exampleChips from configs/examples.json (via /api/session).
+    return f'<div id="{prefix}-examples" class="moss-examples"><span>範例：</span></div>'
 
 
 def picture_slot(

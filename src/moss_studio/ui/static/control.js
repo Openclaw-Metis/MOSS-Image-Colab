@@ -1,5 +1,5 @@
 import {request,session,currentProject,pollJob,draftSaver,capabilityLabel} from "/static/api.js";
-import {setStatus,setBusy,running,reveal,pictureDrop,onPastePicture,showResult,takeHandoff,handoffFile} from "/static/widgets.js";
+import {setStatus,setBusy,running,reveal,pictureDrop,onPastePicture,showResult,takeHandoff,handoffFile,exampleChips,replacePrompt} from "/static/widgets.js";
 const $=(id)=>document.getElementById(id);
 const SLOTS=["control-source","control-depth","control-color","vision-1","vision-2","vision-3","vision-4"];
 const KIND={"control-depth":"control","control-color":"control"};
@@ -119,6 +119,10 @@ window.mossControl={
     C.saver=draftSaver("control",{getProject:()=>C.project,capture,onState:(t)=>{$("control-save-state").textContent=t;}});
     for(const slot of SLOTS){pictureDrop($(`${slot}-drop`),$(`${slot}-file`),(file)=>upload(slot,file));$(`${slot}-remove`).onclick=()=>remove(slot);}
     onPastePicture(root,uploadToDefault);
+    // The examples are colour/depth cases, so they also switch back to that mode.
+    exampleChips("control-examples",C.session.examples.control,(example)=>{if(!replacePrompt($("control-prompt"),example.prompt))return;
+      document.querySelector('input[name="control-mode"][value="color_depth"]').checked=true;
+      if(example.geometry)$("control-geometry").value=example.geometry;render();C.saver.schedule();message(example.hint);});
     for(const radio of document.querySelectorAll('input[name="control-mode"]'))radio.onchange=()=>{render();C.saver.schedule();};
     for(const id of ["control-geometry","control-strength","control-end","vision-strength","vision-width","vision-height",
       "control-prompt","control-negative","control-seed"])$(id).oninput=$(id).onchange=()=>{render();C.saver.schedule();};

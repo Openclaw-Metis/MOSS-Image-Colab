@@ -7,9 +7,17 @@ callbacks, which need SSE that Quick Tunnel does not carry (spec v1.3 C7).
 from moss_studio.ui.workbench_parts import (
     IMAGE_TYPES,
     USAGE_NOTICE,
+    examples_row,
+    first_steps,
     result_panel,
     status_line,
     submit_row,
+)
+
+_STEPS = first_steps(
+    "放入來源圖，用筆刷塗出要改的範圍（藍色）；範圍要蓋住新東西的完整位置。",
+    "描述塗抹處要畫成什麼，或點一個範例。只寫要出現的東西，不必描述整張圖。",
+    "按「開始重繪」，L4 上約 70～80 秒；塗抹範圍以外會保留原圖。",
 )
 
 INPAINT_HTML = f"""
@@ -44,6 +52,7 @@ INPAINT_HTML = f"""
   </div>
   <div class="moss-output">
    <label for="inpaint-prompt"><strong>重繪內容描述</strong></label>
+   {examples_row("inpaint")}
    <textarea id="inpaint-prompt" rows="3"
     placeholder="描述塗抹區域要畫成什麼，例如：一束紅色玫瑰"></textarea>
    <div class="moss-row">
@@ -63,7 +72,7 @@ INPAINT_HTML = f"""
    {submit_row("inpaint", "開始重繪")}
    <p id="inpaint-save-state" class="moss-muted"></p>
    {status_line("inpaint-status", "先放入來源圖，再用筆刷塗抹要修改的區域。")}
-   {result_panel("inpaint", "重繪結果", "重繪結果會顯示在這裡。")}
+   {result_panel("inpaint", "重繪結果", _STEPS)}
    <button id="inpaint-compare" type="button" hidden
     title="按住時顯示來源圖，放開回到結果">按住比較原圖</button>
   </div>

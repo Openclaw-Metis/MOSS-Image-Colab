@@ -166,6 +166,17 @@ window.mossStudio={
     return Object.keys(presets).find(k=>presets[k][0]===width&&presets[k][1]===height)||"custom";},
   applyAspect(aspect,values,presets){const size=presets[aspect];if(!size)return [values[2],values[3]];
     const next=[...values];next[2]=size[0];next[3]=size[1];this.touch(next);return size;},
+  // Fills the form (and the layout canvas) from configs/examples.json; returns the new values
+  // so Gradio can show them, or the current ones when the user keeps their own draft.
+  applyExample(id){const example=(S.session?.examples?.t2i||[]).find(e=>e.id===id);const current=S.form||defaults;
+    if(!example||!S.project)return current;
+    if((String(current[0]).trim()||S.canvas.items.length)&&!confirm("套用範例會取代目前的描述、尺寸與排版框，要繼續嗎？"))return current;
+    const items=(example.layout_items||[]).map((item,index)=>({...item,id:crypto.randomUUID(),z_order:index}));
+    S.canvas.setItems(items);S.canvas.captionOverride=null;S.canvas.meta=null;
+    // Show the first box's fields filled in, so it is clear what each one is for.
+    if(items.length){S.canvas.selected=items[0].id;S.canvas.render();}
+    const values=[example.prompt,"",example.width,example.height,String(example.seed??""),items.length>0,example.profile_id];
+    S.form=null;setForm(values);scheduleSave();message(example.hint);return values;},
   async refreshSession(){if(!S.session)return;S.session=await loadSession();
     showProfile((S.form||defaults)[6]);await loadLoras();},
   async submit(values){if(S.submitting)return;

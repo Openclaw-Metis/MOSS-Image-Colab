@@ -45,6 +45,16 @@ export function onPastePicture(root,onFile){document.addEventListener("paste",(e
   if(root.offsetParent===null)return;const file=picture(e.clipboardData?.files);
   if(file){e.preventDefault();onFile(file);}});}
 
+// ---- examples ----------------------------------------------------------------------------
+// One chip per example from configs/examples.json; `apply` receives the chosen example.
+export function exampleChips(boxId,examples,apply){const box=$(boxId);if(!box||box.dataset.ready)return;box.dataset.ready="1";
+  for(const example of examples||[])box.append(element("button",{type:"button",className:"moss-chip",
+    textContent:example.label,title:example.prompt,onclick:()=>apply(example)}));}
+// Never silently overwrite text the user wrote.
+export function replacePrompt(field,text){const current=field.value.trim();
+  if(current&&current!==text&&!confirm("套用範例會取代目前的描述，要繼續嗎？"))return false;
+  field.value=text;return true;}
+
 // ---- hand-off between tabs ---------------------------------------------------------------
 const TARGETS={edit:{tab:"多圖指令修圖",handle:"mossEdit",root:"edit-root",label:"修圖"},
   inpaint:{tab:"筆刷局部重繪",handle:"mossInpaint",root:"inpaint-root",label:"局部重繪"},

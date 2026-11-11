@@ -16,7 +16,7 @@
 - [x] Stage 10：交付文件完成；使用者 2026-11-08 依 README 在乾淨 L4 重演，回報正常（docs/stages/stage10.md）。
   仍是開發版（AC-08、AC-11 有條件通過）；自加 HF LoRA 沒有 GPU 實測。
 
-- [ ] UI／UX 優化（2026-11-11）：程式完成（CPU 測試、lint、假引擎瀏覽器流程）。尚未在 L4 經通道實際操作；
+- [ ] UI／UX 優化與範例（2026-11-11）：程式完成（CPU 測試、lint、假引擎瀏覽器流程）。尚未在 L4 經通道實際操作；
   下次開 Colab 時順手走一遍五分頁與「接著做」。
 
 GPU 批次腳本：`scripts/batch_c_eval.py`、`batch_d_eval.py`、`batch_e_eval.py`（共用 `batch_runner.py`，每例檢查點、重跑不重送），

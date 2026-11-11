@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "purpose": "介面上的範例。每一筆都取自跑模型前就固定、並在 L4 驗收通過的案例（source 指向原案例），不是保證結果；改寫時 tests/unit/test_examples.py 會比對來源。",
+  "t2i": [
+    {
+      "id": "layout-mountain",
+      "label": "排版海報：山間慢旅",
+      "prompt": "米白色背景的極簡旅遊海報，上方深藍色大標題，下半部是藍色山脈插畫",
+      "width": 1024,
+      "height": 1024,
+      "seed": 61001,
+      "profile_id": "quality50_v1",
+      "layout_items": [
+        {
+          "label": "text",
+          "caption": "置中的深藍色粗體大標題",
+          "text": "山間慢旅",
+          "normalized_bbox": [
+            0.12,
+            0.08,
+            0.88,
+            0.22
+          ]
+        },
+        {
+          "label": "object",
+          "caption": "扁平風格的藍色山脈與小樹插畫",
+          "normalized_bbox": [
+            0.05,
+            0.35,
+            0.95,
+            0.95
+          ]
+        }
+      ],
+      "hint": "已填入排版範例：上方文字框是標題、下方物件框是山脈插畫，可拖曳調整後按「產生圖片」（精細 50 步約 2 分鐘）。",
+      "source": "tests/fixtures/zh_tw_layouts.json#zh01-mountain-travel"
+    },
+    {
+      "id": "product-mug",
+      "label": "產品攝影：咖啡杯",
+      "prompt": "A product photograph of a matte black ceramic coffee mug on a light oak table, steam rising from the mug, plain beige background.",
+      "width": 1024,
+      "height": 1024,
+      "seed": 91003,
+      "profile_id": "quality50_v1",
+      "hint": "已填入產品攝影範例。英文描述通常比較穩定；按「產生圖片」（精細 50 步約 2 分鐘）。",
+      "source": "tests/fixtures/ac18_cases.json#g3-product"
+    },
+    {
+      "id": "practice-room",
+      "label": "練習素材：客廳",
+      "prompt": "A bright minimalist living room with a grey sofa against a white wall, a wooden coffee table in front, light wooden floor, large window on the right.",
+      "width": 1024,
+      "height": 1024,
+      "seed": 71005,
+      "profile_id": "fast8_v1",
+      "hint": "已填入「客廳」練習素材（加速 8 步約 15 秒）。完成後按結果下方「接著做 → 局部重繪」，再套用那裡的「加一盆盆栽」範例。",
+      "source": "tests/fixtures/batch_c_cases.json#fixtures/room"
+    },
+    {
+      "id": "practice-person",
+      "label": "練習素材：人物",
+      "prompt": "A full-body studio photograph of a young woman standing straight, wearing a plain white T-shirt, blue jeans and white sneakers, arms relaxed, plain light grey background, soft even lighting.",
+      "width": 1024,
+      "height": 1536,
+      "seed": 71001,
+      "profile_id": "fast8_v1",
+      "hint": "已填入「人物」練習素材（AI 生成，不是真人照片；加速 8 步約 15 秒）。完成後按「接著做 → 修圖」，再套用那裡的範例。",
+      "source": "tests/fixtures/batch_c_cases.json#fixtures/person"
+    },
+    {
+      "id": "practice-dancer",
+      "label": "練習素材：舞者",
+      "prompt": "A full-body photograph of a dancer posing with both arms raised above the head and one knee lifted, plain dark studio background, side light.",
+      "width": 1024,
+      "height": 1536,
+      "seed": 71006,
+      "profile_id": "fast8_v1",
+      "hint": "已填入「舞者」練習素材（加速 8 步約 15 秒）。完成後按「接著做 → 當控制來源」，再套用那裡的範例。",
+      "source": "tests/fixtures/batch_c_cases.json#fixtures/dancer"
+    }
+  ],
+  "edit": [
+    {
+      "id": "hoodie",
+      "label": "換上衣",
+      "prompt": "Change only the white T-shirt to a black hoodie. Keep the character, face, hair, pose, background and composition unchanged.",
+      "hint": "已填入指令。圖 1 請放人物照；沒有圖可到「文生圖與排版」套用「練習素材：人物」。",
+      "source": "tests/fixtures/batch_c_cases.json#edit/e1-hoodie"
+    },
+    {
+      "id": "beach",
+      "label": "換背景",
+      "prompt": "Change only the background to a sunny beach with blue sea. Keep the character, face, hair, clothes and pose unchanged.",
+      "hint": "已填入指令。圖 1 請放人物照；把指令裡的 sunny beach 換成你要的場景。",
+      "source": "tests/fixtures/batch_c_cases.json#edit/e1-beach"
+    },
+    {
+      "id": "coat",
+      "label": "穿上圖 2 的外套",
+      "prompt": "Picture 1 is the person. Picture 2 is a red plaid coat. Dress the person from picture 1 in the coat from picture 2. Keep the face, hair, pose and background of picture 1 unchanged.",
+      "hint": "已填入指令。圖 1 放人物、圖 2 放外套的商品照；指令裡要說明每張圖是什麼。",
+      "source": "tests/fixtures/batch_c_cases.json#edit/e2-coat"
+    }
+  ],
+  "inpaint": [
+    {
+      "id": "plant",
+      "label": "加一盆盆栽",
+      "prompt": "A large green potted monstera plant in a white pot.",
+      "denoise": 1.0,
+      "hint": "已填入描述。在客廳照片左下角塗出放盆栽的範圍（塗大一點，要蓋住整個盆栽的位置）再按「開始重繪」。",
+      "source": "tests/fixtures/batch_c_cases.json#inpaint/i1-plant"
+    },
+    {
+      "id": "sweater",
+      "label": "換成綠色毛衣",
+      "prompt": "A green knitted sweater.",
+      "denoise": 1.0,
+      "hint": "已填入描述。把人物的上衣整件塗滿（含袖子）再按「開始重繪」。",
+      "source": "tests/fixtures/batch_c_cases.json#inpaint/i3-sweater"
+    }
+  ],
+  "control": [
+    {
+      "id": "knight",
+      "label": "同姿勢的騎士",
+      "prompt": "A knight in silver armour posing with both arms raised above the head and one knee lifted, castle courtyard at dusk.",
+      "geometry": "depth",
+      "hint": "已填入描述，幾何來源設為深度。來源圖請放一張姿勢清楚的全身照；沒有圖可到「文生圖與排版」套用「練習素材：舞者」。",
+      "source": "tests/fixtures/batch_c_cases.json#control/c6-depth-knight"
+    },
+    {
+      "id": "statue",
+      "label": "同姿勢的大理石雕像",
+      "prompt": "A white marble statue of a dancer with arms raised, museum hall.",
+      "geometry": "depth",
+      "hint": "已填入描述，幾何來源設為深度；新圖會沿用來源圖的姿勢與身形。",
+      "source": "tests/fixtures/batch_c_cases.json#control/c10-depth-statue"
+    }
+  ]
+}

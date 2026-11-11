@@ -87,6 +87,9 @@ class StudioService:
             self.profiles[profile["id"]] = profile
         self.default_profile_id = "quality50_v1"
         self.capabilities = load_capabilities(self.repository)
+        self.examples = json.loads(
+            (self.repository / "configs/examples.json").read_text(encoding="utf-8")
+        )
         self.models = ModelManager(
             self.repository,
             model_root or Path("/content/models"),
