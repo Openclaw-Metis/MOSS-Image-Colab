@@ -1,5 +1,5 @@
 import {request,session,currentProject,pollJob,draftSaver,capabilityLabel} from "/static/api.js";
-import {setStatus,setBusy,running,reveal,pictureDrop,onPastePicture,showResult,takeHandoff,handoffFile} from "/static/widgets.js";
+import {setStatus,setBusy,running,reveal,pictureDrop,onPastePicture,showResult,takeHandoff,handoffFile,exampleChips,replacePrompt} from "/static/widgets.js";
 const $=(id)=>document.getElementById(id);
 // The mask canvas lives at the working size (≈1 MP) so undo snapshots stay bounded.
 const P={project:null,source:null,mask:null,ctx:null,undo:[],mode:"brush",last:null,active:null,
@@ -171,6 +171,8 @@ window.mossInpaint={
     pictureDrop($("inpaint-stage"),$("inpaint-file"),uploadSource,{click:false});
     $("inpaint-pick").onclick=()=>$("inpaint-file").click();onPastePicture(root,uploadSource);
     document.addEventListener("keydown",shortcuts);
+    exampleChips("inpaint-examples",s.examples.inpaint,(example)=>{if(!replacePrompt($("inpaint-prompt"),example.prompt))return;
+      if(example.denoise)$("inpaint-denoise").value=example.denoise;featherText();P.saver.schedule();message(example.hint);});
     $("inpaint-brush").onclick=()=>setMode("brush");$("inpaint-eraser").onclick=()=>setMode("eraser");
     $("inpaint-undo").onclick=undo;$("inpaint-clear").onclick=clear;$("inpaint-invert").onclick=invert;
     $("inpaint-preview").onchange=redraw;$("inpaint-submit").onclick=submit;$("inpaint-cancel").onclick=cancel;

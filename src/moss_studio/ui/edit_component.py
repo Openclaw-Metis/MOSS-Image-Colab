@@ -2,6 +2,8 @@
 
 from moss_studio.ui.workbench_parts import (
     USAGE_NOTICE,
+    examples_row,
+    first_steps,
     picture_slot,
     result_panel,
     status_line,
@@ -21,6 +23,12 @@ def _slot(index: int) -> str:
 
 _START = "放入 1～2 張圖片（3～4 張為實驗），描述要修改的內容，再按「開始修圖」。"
 
+_STEPS = first_steps(
+    "在圖 1 放入要修改的圖（點擊、拖放或貼上）；需要參考另一張圖時放在圖 2。",
+    "點一個範例填入指令，再改成你要的內容；英文指令通常比較穩定。",
+    "按「開始修圖」，L4 上約 80～95 秒。沒有圖可先到「文生圖與排版」套用練習素材。",
+)
+
 EDIT_HTML = f"""
 <section id="edit-root" class="moss-tab">
  {USAGE_NOTICE}
@@ -32,6 +40,7 @@ EDIT_HTML = f"""
     <button id="edit-renumber" type="button">確認重新編號</button>
    </div>
    <label for="edit-prompt"><strong>修改指令</strong></label>
+   {examples_row("edit")}
    <textarea id="edit-prompt" rows="4"
     placeholder="Change only the X to Y. Keep the character, face, hair, pose,
  background and composition unchanged."></textarea>
@@ -50,7 +59,7 @@ EDIT_HTML = f"""
   </div>
   <div class="moss-output">
    {status_line("edit-status", _START)}
-   {result_panel("edit", "修圖結果", "修圖結果會顯示在這裡。")}
+   {result_panel("edit", "修圖結果", _STEPS)}
   </div>
  </div>
 </section>

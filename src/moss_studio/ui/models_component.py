@@ -1,6 +1,12 @@
 """Models tab markup; behaviour in static/models.js (client-only, HTTP)."""
 
-from moss_studio.ui.workbench_parts import result_panel, status_line, submit_row
+from moss_studio.ui.workbench_parts import first_steps, result_panel, status_line, submit_row
+
+_STEPS = first_steps(
+    "選一張這個專案的作品或上傳圖（也可從結果下方的「接著做 → 放大」帶過來）。",
+    "選目標長邊；畫面描述沿用原作品的描述效果最好。",
+    "按「開始放大」，放大到 2048×2048 在 L4 上約 520 秒。",
+)
 
 MODELS_HTML = f"""
 <section id="models-root" class="moss-tab">
@@ -51,7 +57,7 @@ MODELS_HTML = f"""
   </div>
   <div class="moss-output">
    {status_line("hires-status", "選一張作品與目標長邊，再按「開始放大」。")}
-   {result_panel("hires", "放大結果", "放大結果會顯示在這裡。")}
+   {result_panel("hires", "放大結果", _STEPS)}
   </div>
  </div>
 </section>

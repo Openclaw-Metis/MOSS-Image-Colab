@@ -2,10 +2,18 @@
 
 from moss_studio.ui.workbench_parts import (
     USAGE_NOTICE,
+    examples_row,
+    first_steps,
     picture_slot,
     result_panel,
     status_line,
     submit_row,
+)
+
+_STEPS = first_steps(
+    "放入來源圖：新圖會沿用它的大致構圖、姿勢與遠近，不會沿用它的外觀。",
+    "描述新圖要畫什麼，或點一個範例；想離來源圖遠一點就調低控制強度。",
+    "按「產生圖片」，L4 上約 60 秒；結果下方會附上這次實際套用的深度圖。",
 )
 
 CONTROL_HTML = f"""
@@ -56,6 +64,7 @@ CONTROL_HTML = f"""
     </div>
    </div>
    <label for="control-prompt"><strong>畫面描述</strong></label>
+   {examples_row("control")}
    <textarea id="control-prompt" rows="3"
     placeholder="描述新圖的人物、服裝、場景與光線"></textarea>
    <details><summary>進階設定</summary>
@@ -68,7 +77,7 @@ CONTROL_HTML = f"""
   </div>
   <div class="moss-output">
    {status_line("control-status", "放入來源圖，新圖會跟隨它的大致輪廓或深度。")}
-   {result_panel("control", "生成結果", "生成結果會顯示在這裡。")}
+   {result_panel("control", "生成結果", _STEPS)}
    <p id="control-map-label" class="moss-muted" hidden>這次實際套用的估計輪廓／深度圖：</p>
    <img id="control-map" alt="估計的控制圖" hidden
      style="max-width:360px;max-height:360px;object-fit:contain;border:1px solid #cbd5e1">

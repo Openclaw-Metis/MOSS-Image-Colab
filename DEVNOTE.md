@@ -36,6 +36,10 @@ studio.js 改用 api.js 的 request／pollJob，不再自帶一份。分頁版�
 縮圖 GET /api/assets/{p}/{a}/thumbnail（384 px JPEG、記憶體快取）；專案改名 PATCH、刪除 DELETE /api/projects/{id}（移入 trash、有未完成工作時 409）。
 工作回應多了 created_at；inpaint 的 JobRecord 多了 source_asset_id（比較原圖用）。
 
+範例（2026-11-11）：configs/examples.json，經 /api/session 的 examples 給前端；文生圖用 Gradio 按鈕（fn=None、回傳表單值），
+其餘分頁用 widgets.exampleChips。每筆的 source 指向跑模型前就固定且 L4 通過的案例，tests/unit/test_examples.py 比對描述、尺寸與種子；
+要換範例先確認該案例在 docs/evidence 的評分是通過的。各分頁空結果區顯示三步驟（workbench_parts.first_steps），不另佔首屏區塊。
+
 # VALIDATION
 CPU：189 passed／7 skipped（3 載入探測、2 長 GPU、1 /proc、1 symlink）。node --check 全部前端模組。
 假引擎瀏覽器（scripts/dev_server.py，非 GPU 證據）：五分頁主流程、fast8 負向詞攔截、修圖空格重編號、
@@ -83,3 +87,4 @@ PR #1 合併進 main（8a6f07f）。使用者接受 AC-19 限制並指示續做�
 2026-11-08：Stage 10 文件完成，PR #2 合併進 main（8218cc3）；第 2 格改為預設下載 Base 以外的全部模型（PR #3）。
 2026-11-08：使用者自行依 README 在乾淨 L4 重演（main b00af07），回報各項正常；Stage 10 完成。
 2026-11-11：UI／UX 優化（狀態列與進度、拖放貼上、作品接力、作品集、專案改名刪除、重繪筆刷游標與比較、版面與手機寬度）；假引擎驗證。
+2026-11-11：PR #7 合併進 main（75991f2）；接著加入範例與各分頁首次使用步驟（假引擎驗證，220 passed）。

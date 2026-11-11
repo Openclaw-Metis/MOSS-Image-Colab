@@ -61,6 +61,7 @@ def wire_job(job: dict) -> dict:
 
 LINK_TTL_SECONDS = 1800
 THUMBNAIL_EDGE = 384
+EXAMPLE_TABS = ("t2i", "edit", "inpaint", "control")
 MAX_LIVE_LINKS = 5
 
 
@@ -203,6 +204,7 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
             ],
             "model_artifact_id": service.models.active_backbone(),
             "capabilities": service.capabilities,
+            "examples": {tab: service.examples[tab] for tab in EXAMPLE_TABS},
             "release_status": "development",
         }
 
