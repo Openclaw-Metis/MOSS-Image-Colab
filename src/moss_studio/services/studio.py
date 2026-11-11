@@ -225,7 +225,12 @@ class StudioService:
             "graph": graph,
             "inputs": [(source_name, png_bytes(source)), (mask_name, mask_png(alpha))],
             "finish": finish,
-            "record": {"postprocess": "feathered_composite", "feather_px": radius},
+            "record": {
+                "postprocess": "feathered_composite",
+                "feather_px": radius,
+                # The before/after comparison must show the picture this job actually used.
+                "source_asset_id": source_meta["id"],
+            },
         }
 
     def _control_plan(self, spec: dict, profile: dict) -> dict:
@@ -487,6 +492,19 @@ class StudioService:
             with self.lock:
                 self.futures.pop(job_id, None)
 
+    def rename_project(self, project_id: str, name, expected_revision) -> dict:
+        if not isinstance(name, str):
+            raise ValidationError("名稱必填，最多 120 字")
+        with self.lock:
+            return self.projects.rename(project_id, name.strip(), expected_revision)
+
+    def delete_project(self, project_id: str, expected_revision) -> None:
+        """Moves the project file to trash; assets, records and ledger rows stay on disk."""
+        with self.lock:
+            if any(j["status"] not in TERMINAL for j in self.ledger.list(project_id)):
+                raise ConflictError("此專案有工作進行中，請等它完成或取消後再刪除")
+            self.projects.delete(project_id, expected_revision, confirmed=True)
+
     def busy(self) -> bool:
         return any(j["status"] not in TERMINAL for j in self.ledger.list())
 
@@ -501,6 +519,8 @@ class StudioService:
             "id": job_id,
             "project_id": job["project_id"],
             "status": job["status"],
+            # Lets a reloaded page show the real elapsed time instead of restarting at zero.
+            "created_at": job["created_at"],
             "events": self.ledger.events(job_id, after_seq),
             "project_revision": project["revision"],
             "draft_hash": digest(project["drafts"]["t2i"]),

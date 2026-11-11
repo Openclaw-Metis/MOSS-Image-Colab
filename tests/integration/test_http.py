@@ -207,3 +207,47 @@ def test_raw_upload_needs_csrf_caps_size_and_returns_edit_size(http_studio):
         headers=headers,
     )
     assert bad_tab.status_code == 422
+
+
+def test_project_rename_and_delete_use_revision_and_refuse_stale_callers(http_studio):
+    client, service = http_studio
+    headers = authenticate(client)
+    project = client.post("/api/projects", json={"name": "未命名創作"}, headers=headers).json()
+    url = f"/api/projects/{project['id']}"
+    assert client.patch(url, json={"name": "x", "expected_revision": 0}).status_code == 403
+    blank = client.patch(url, json={"name": "  ", "expected_revision": 0}, headers=headers)
+    assert blank.status_code == 422
+    renamed = client.patch(
+        url, json={"name": " 山景海報 ", "expected_revision": 0}, headers=headers
+    ).json()
+    assert renamed["name"] == "山景海報" and renamed["revision"] == 1
+    assert renamed["draft_hashes"] == project["draft_hashes"]
+    stale = client.patch(url, json={"name": "舊頁面", "expected_revision": 0}, headers=headers)
+    assert stale.status_code == 409
+    assert client.delete(url, params={"expected_revision": 0}, headers=headers).status_code == 409
+    assert client.delete(url, params={"expected_revision": 1}, headers=headers).status_code == 200
+    assert client.get(url).status_code == 404
+    assert project["id"] not in {p["id"] for p in client.get("/api/projects").json()}
+    # Recoverable: the project file moved to trash instead of being unlinked.
+    assert service.projects.restore(project["id"])["name"] == "山景海報"
+
+
+def test_thumbnail_is_small_jpeg_and_only_for_project_assets(http_studio):
+    client, _ = http_studio
+    headers = authenticate(client)
+    project = client.post("/api/projects", json={"name": "thumb"}, headers=headers).json()
+    other = client.post("/api/projects", json={"name": "other"}, headers=headers).json()
+    buffer = io.BytesIO()
+    Image.new("RGB", (1600, 800), "green").save(buffer, format="PNG")
+    asset = client.post(
+        f"/api/projects/{project['id']}/assets",
+        content=buffer.getvalue(),
+        headers={**headers, "Content-Type": "image/png"},
+    ).json()
+    response = client.get(f"/api/assets/{project['id']}/{asset['id']}/thumbnail")
+    assert response.status_code == 200 and response.headers["content-type"] == "image/jpeg"
+    with Image.open(io.BytesIO(response.content)) as image:
+        assert image.format == "JPEG" and image.size == (384, 192)
+    assert client.get(f"/api/assets/{other['id']}/{asset['id']}/thumbnail").status_code == 404
+    client.cookies.clear()
+    assert client.get(f"/api/assets/{project['id']}/{asset['id']}/thumbnail").status_code == 401

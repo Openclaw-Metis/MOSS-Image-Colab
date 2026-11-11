@@ -1,15 +1,24 @@
 """Authenticated same-origin polling adapter for the Gradio workbench."""
 
 import hmac
+import io
 import json
 import secrets
 import threading
 import time
 import zipfile
+from functools import lru_cache
 
 import gradio as gr
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+)
+from PIL import Image
 from starlette.concurrency import run_in_threadpool
 
 from moss_studio.adapters.comfy import EngineError
@@ -51,6 +60,7 @@ def wire_job(job: dict) -> dict:
 
 
 LINK_TTL_SECONDS = 1800
+THUMBNAIL_EDGE = 384
 MAX_LIVE_LINKS = 5
 
 
@@ -220,6 +230,23 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
     def project(project_id: str):
         return with_hashes(service.projects.get(project_id))
 
+    @app.patch("/api/projects/{project_id}")
+    async def rename_project(project_id: str, request: Request):
+        value = await object_body(request)
+        return with_hashes(
+            await run_in_threadpool(
+                service.rename_project,
+                project_id,
+                value.get("name"),
+                value.get("expected_revision"),
+            )
+        )
+
+    @app.delete("/api/projects/{project_id}")
+    async def delete_project(project_id: str, expected_revision: int):
+        await run_in_threadpool(service.delete_project, project_id, expected_revision)
+        return {"deleted": project_id}
+
     @app.put("/api/projects/{project_id}/draft")
     async def save_draft(project_id: str, request: Request):
         value = await object_body(request)
@@ -336,6 +363,22 @@ def create_http_app(service, password: str, ui_factory) -> FastAPI:
             media_type="image/png",
             filename=f"{asset_id}.png",
         )
+
+    @lru_cache(maxsize=128)
+    def thumbnail(project_id: str, asset_id: str) -> bytes:
+        with Image.open(service.assets.path(project_id, asset_id)) as image:
+            image.thumbnail((THUMBNAIL_EDGE, THUMBNAIL_EDGE))
+            buffer = io.BytesIO()
+            image.convert("RGB").save(buffer, format="JPEG", quality=80)
+        return buffer.getvalue()
+
+    @app.get("/api/assets/{project_id}/{asset_id}/thumbnail")
+    def asset_thumbnail(project_id: str, asset_id: str):
+        # Galleries and pickers list many pictures; full PNGs through the tunnel are 1-4 MB each.
+        project = service.projects.get(project_id)
+        if asset_id not in project["asset_ids"]:
+            raise HTTPException(404)
+        return Response(thumbnail(project_id, asset_id), media_type="image/jpeg")
 
     @app.get("/api/projects/{project_id}/export")
     def export(project_id: str):

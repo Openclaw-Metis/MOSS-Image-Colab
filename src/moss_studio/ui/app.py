@@ -12,14 +12,18 @@ from moss_studio.ui.edit_component import EDIT_HTML
 from moss_studio.ui.inpaint_component import INPAINT_HTML
 from moss_studio.ui.layout_component import LAYOUT_HTML
 from moss_studio.ui.models_component import MODELS_HTML
+from moss_studio.ui.workbench_parts import GALLERY_HTML, WORKBENCH_CSS, result_panel, status_line
 
 PROJECT_MENU_HTML = """
 <div id="project-menu" style="display:flex;flex-direction:column;gap:8px">
+ <label>目前專案名稱 <input id="project-name" maxlength="120"></label>
+ <button id="project-rename" type="button">儲存名稱</button>
  <label>開啟其他專案 <select id="project-list"><option value="">（載入中）</option></select></label>
  <button id="project-open" type="button">開啟選取的專案</button>
- <a id="project-export" download>匯出目前專案（ZIP，可在新的 Colab 續編）</a>
+ <a id="project-export" class="moss-button" download>匯出目前專案（ZIP，可在新的 Colab 續編）</a>
  <label>匯入專案 ZIP <input id="project-import" type="file" accept=".zip,application/zip"></label>
- <p id="project-menu-status" role="status" style="color:#475569">
+ <button id="project-delete" type="button" class="moss-danger">刪除目前專案</button>
+ <p id="project-menu-status" role="status" class="moss-muted">
   專案檔含素材、遮罩、排版與作品；不含模型與密碼。匯入會建立新專案，不覆蓋現有專案。</p>
 </div>
 """
@@ -43,7 +47,7 @@ ASPECT_CHOICES = [(key, key) for key in ASPECT_PRESETS] + [("自訂", "custom")]
 # AC-19 batch A (2026-11-07): 7/10 zh-TW layouts fully correct, below the 8/10 gate. The spec
 # requires stating the limit where titles are written; see docs/evidence/stage2-batch-a.
 ZH_TW_NOTICE = (
-    '<p role="note" style="background:#fef3c7;color:#713f12;padding:8px 12px;border-radius:6px">'
+    '<p role="note" class="moss-notice">'
     "繁體中文標題可能寫錯：實測 10 張中有 3 張出錯（近形字替換，或把框描述的字寫進標題）。"
     "請逐字檢查；框描述避免寫顏色等可能被畫成文字的詞，重要標題可改用後製加字。</p>"
 )
@@ -65,13 +69,7 @@ def build_ui(service):
     ).hexdigest()[:12]
     with gr.Blocks(title="MOSS-Image 創作工作台", analytics_enabled=False) as demo:
         gr.HTML(
-            "<style>.gradio-container{--body-background-fill:#f8fafc;--block-background-fill:#fff;"
-            "--input-background-fill:#f1f5f9;--body-text-color:#0f172a;--input-text-color:#0f172a;}"
-            "#moss-result{width:100%;max-height:650px;object-fit:contain}"
-            "#layout-workbench button{padding:7px 10px;border:1px solid #94a3b8;border-radius:5px}"
-            "#layout-workbench input,#layout-workbench select,#layout-workbench textarea"
-            "{color:#0f172a;background:white;border:1px solid #94a3b8;padding:5px}"
-            "</style><h1>MOSS-Image 創作工作台</h1>"
+            f"<style>{WORKBENCH_CSS}</style><h1>MOSS-Image 創作工作台</h1>"
             '<p id="moss-runtime" role="status">正在讀取執行環境…</p>'
         )
         with gr.Tabs():
@@ -87,15 +85,13 @@ def build_ui(service):
                         aspect = gr.Radio(
                             choices=ASPECT_CHOICES,
                             value="1:1",
-                            label="畫面比例（點選即套用，約 1 MP；精確像素見下方寬高）",
+                            label="畫面比例（約 1 MP；下方寬高可微調，以 16 像素為單位）",
                         )
+                        # Sides step by 16: the model works in 16×16 px cells and the engine
+                        # floors anything else, so the result would not match the setting.
                         with gr.Row():
                             width = gr.Slider(512, 4096, value=1024, step=16, label="寬度")
                             height = gr.Slider(512, 4096, value=1024, step=16, label="高度")
-                        gr.Markdown(
-                            "寬高以 16 像素為單位：模型每 16×16 像素算一格，"
-                            "其他數字會被引擎無條件捨去，成品就不是你設定的大小。"
-                        )
                         profile = gr.Radio(
                             choices=[("精細 50 步", "quality50_v1"), ("加速 8 步", "fast8_v1")],
                             value="quality50_v1",
@@ -110,31 +106,32 @@ def build_ui(service):
                             gr.Markdown(
                                 "排版 JSON 可在畫布下方展開；排版模式以 summary.caption 為準。"
                             )
-                        generate = gr.Button("產生圖片", variant="primary")
-                        cancel = gr.Button("取消目前工作")
+                        generate = gr.Button(
+                            "產生圖片",
+                            variant="primary",
+                            elem_id="moss-generate",
+                            elem_classes="moss-cta",
+                        )
+                        cancel = gr.Button("取消目前工作", elem_id="moss-cancel")
+                        gr.HTML('<p class="moss-shortcut">Ctrl+Enter 也可送出</p>')
                         with gr.Accordion("專案", open=False):
                             new_project = gr.Button("新建創作")
                             gr.HTML(PROJECT_MENU_HTML)
                     with gr.Column(scale=7):
                         gr.HTML(
-                            '<p id="moss-status" role="status">'
-                            "請輸入創作內容，再按產生圖片。</p>"
-                            '<p id="moss-project">尚未開啟專案</p><p id="moss-save-state"></p>'
+                            status_line("moss-status", "請輸入創作內容，再按產生圖片。")
+                            + '<p class="moss-muted">專案：<span id="moss-project">尚未開啟專案'
+                            '</span>　<span id="moss-save-state"></span></p>'
                             '<div id="moss-view-controls" style="display:none">'
-                            '<button id="moss-edit-layout">編輯排版</button>　'
-                            '<button id="moss-view-result" disabled>查看作品</button></div>'
+                            '<button id="moss-edit-layout" type="button">編輯排版</button>　'
+                            '<button id="moss-view-result" type="button" disabled>查看作品'
+                            "</button></div>"
                         )
                         gr.HTML(LAYOUT_HTML)
                         gr.HTML(
-                            '<section id="moss-result-panel">'
-                            '<div id="moss-empty" style="height:400px;display:flex;'
-                            "align-items:center;"
-                            'justify-content:center;background:#f1f5f9;color:#475569">'
-                            "還沒有作品。輸入描述後按「產生圖片」。</div>"
-                            '<img id="moss-result" alt="生成結果" hidden>'
-                            '<p id="moss-result-summary"></p>'
-                            '<p><a id="moss-download" hidden download>下載圖片</a>　'
-                            '<a id="moss-works" hidden download>打包作品 ZIP</a></p></section>'
+                            result_panel(
+                                "moss", "生成結果", "還沒有作品。輸入描述後按「產生圖片」。"
+                            )
                         )
             with gr.Tab("多圖指令修圖") as edit_tab:
                 gr.HTML(EDIT_HTML)
@@ -150,6 +147,7 @@ def build_ui(service):
             with gr.Tab("模型與高解析") as models_tab:
                 gr.HTML(MODELS_HTML)
             models_tab.select(fn=None, js=tab_loader(service, "models.js", "mossModels"))
+        gr.HTML(GALLERY_HTML)
         form = [prompt, negative, width, height, seed, layout_on, profile]
         presets = json.dumps({key: list(size) for key, size in ASPECT_PRESETS.items()})
         with_aspect = f"[...v,window.mossStudio.aspectOf(v,{presets})]"
