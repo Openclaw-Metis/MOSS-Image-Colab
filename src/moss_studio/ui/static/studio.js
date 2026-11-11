@@ -1,14 +1,12 @@
 import {LayoutCanvas} from "/static/layout.js";
-import {capabilityLabel} from "/static/api.js";
+import {request,session as loadSession,pollJob,capabilityLabel} from "/static/api.js";
+import {setStatus,setBusy,running,reveal,showResult,clearResult,bindWorkbench,refreshGallery} from "/static/widgets.js";
 const $=(id)=>document.getElementById(id);
-const stages={created:"正在準備",validating:"正在檢查",queued:"已排隊",encoding:"正在編碼",
-  sampling:"正在繪製",decoding:"正在解碼",saving:"正在保存",succeeded:"已完成",
-  cancelling:"正在等候引擎取消",cancelled:"已取消",failed:"本次未完成，輸入仍保留",
-  interrupted:"工作曾中斷，請先核對原紀錄"};
-const S={project:null,form:null,csrf:null,saving:Promise.resolve(),timer:null,active:null,
+const S={project:null,form:null,saving:Promise.resolve(),timer:null,active:null,
   conflict:false,submitting:false,pollToken:0,lastSeq:0,dirty:false,hasResult:false,view:"result",pending:null};
-const active=()=>S.active&&!['succeeded','failed','cancelled','interrupted'].includes(S.active.status);
-const message=(text)=>{$("moss-status").textContent=text;};
+const active=()=>running(S.active);
+const message=(text,tone="info")=>setStatus("moss-status",text,{tone});
+const syncButtons=()=>setBusy($("moss-generate"),$("moss-cancel"),active());
 const defaults=["","",1024,1024,"",false,"quality50_v1"];
 const profileOf=(id)=>(S.session?.profiles||[]).find(p=>p.id===id);
 function showProfile(id){const p=profileOf(id);if(!p)return;const model=S.session.model_artifact_id;
@@ -22,17 +20,6 @@ function showProfile(id){const p=profileOf(id);if(!p)return;const model=S.sessio
     ?`${name} · ${p.steps} 步 Euler · CFG ${p.cfg} · SLG 22 · ${capabilityLabel(S.session,"quality_50")}`
     :`SFT bf16 · ${p.steps} 步 · DMD 加速 LoRA · 不使用 CFG 與負向提示詞 · ${capabilityLabel(S.session,"fast_8")}`)+note+big;
   renderLoras();}
-async function request(url,options={}){
-  const headers={...(options.headers||{})};
-  if(options.body!==undefined&&!(options.body instanceof Blob)){headers["Content-Type"]="application/json";options.body=JSON.stringify(options.body);}
-  if(options.method&&options.method!=="GET")headers["X-Moss-CSRF"]=S.csrf;
-  const response=await fetch(url,{...options,headers,credentials:"same-origin"});
-  let result;try{result=await response.json();}catch{throw Error("連線回應不完整，請先找回原工作");}
-  if(!response.ok){
-    const error=Error(response.status===401?"登入已失效，請重新登入":result.message||result.detail||`請求失敗 (${response.status})`);
-    error.status=response.status;throw error;}
-  return result;
-}
 function capture(){const [prompt,negative,width,height,seed,layout,profile]=S.form||defaults;
   return {prompt,negative,width:S.canvas.width,height:S.canvas.height,seed,layout_enabled:layout,profile_id:profile,layout_items:S.canvas.items,
     layout_caption:S.canvas.captionOverride||null,layout_meta:S.canvas.meta||null,lora_stack:S.loraStack||[]};}
@@ -72,7 +59,7 @@ async function save(){if(S.conflict)throw Error("專案版本衝突，請重新�
   try{await S.saving;}catch(error){S.conflict=true;$("moss-save-state").textContent="尚未保存："+error.message;throw error;}
 }
 function scheduleSave(){S.dirty=true;clearTimeout(S.timer);if(S.project&&!S.submitting)
-  S.timer=setTimeout(()=>save().catch(e=>message(e.message)),500);}
+  S.timer=setTimeout(()=>save().catch(e=>message(e.message,"error")),500);}
 function setForm(values){const old=S.form;S.form=values;
   if(old&&old[0]!==values[0]){S.canvas.captionOverride=null;S.canvas.revision++;S.canvas.render();}
   // Sizes apply at once: layout boxes are stored normalised, so they keep their relative place.
@@ -92,33 +79,18 @@ async function loadProject(project){S.project=project;S.savedHash=project.draft_
   const values=[d.prompt||"",d.negative||"",d.width||1024,d.height||1024,d.seed||"",!!d.layout_enabled,profile];
   S.canvas.setItems(d.layout_items||[]);S.canvas.captionOverride=d.layout_caption||null;
   S.canvas.meta=d.layout_meta||null;S.form=null;setForm(values);
-  $("moss-project").textContent=project.name;return values;}
-async function poll(id){const token=++S.pollToken;S.lastSeq=0;
-  while(token===S.pollToken){
-    try{const job=await request(`/api/jobs/${encodeURIComponent(id)}?after_seq=${S.lastSeq}`);
-      S.active=job;if(S.project.id!==job.project_id)return;
-      if(job.draft_hash===S.savedHash)S.project.revision=job.project_revision;
-      let progress="";for(const event of job.events){S.lastSeq=Math.max(S.lastSeq,event.seq);
-        if(event.type==="progress"&&Number.isFinite(event.payload.value)&&Number.isFinite(event.payload.max))
-          progress=`，第 ${event.payload.value}/${event.payload.max} 步`;}
-      message((stages[job.status]||job.status)+progress);
-      if(job.status==="succeeded"){
-        const asset=job.record.output_assets[0];const path=`/api/assets/${job.project_id}/${asset}`;
-        $("moss-result").src=path;$("moss-result").hidden=false;
-        S.hasResult=true;$("moss-empty").style.display="none";showView("result");
-        $("moss-download").href=path;$("moss-download").hidden=false;
-        $("moss-works").href=`/api/works/${job.project_id}.zip`;$("moss-works").hidden=false;
-        $("moss-result-summary").textContent=`種子 ${job.seed} · ${job.record.seconds.toFixed(1)} 秒 · 工作流 ${job.record.workflow_hash.slice(0,12)} · 本地已保存，尚未匯出專案`;
-        return;
-      }
-      if(["failed","cancelled","interrupted"].includes(job.status))return;
-      await new Promise(resolve=>setTimeout(resolve,document.hidden?5000:1000));
-    }catch(error){message("重新連線中："+error.message+"。不會自動重送工作。");
-      await new Promise(resolve=>setTimeout(resolve,3000));}
-  }
+  $("moss-project").textContent=project.name;if($("project-name"))$("project-name").value=project.name;return values;}
+async function poll(id){const token=++S.pollToken;const project=S.project.id;
+  const job=await pollJob(id,{isCurrent:()=>token===S.pollToken&&S.project.id===project,onUpdate:(job,text,view)=>{
+    if(job){S.active=job;if(job.draft_hash===S.savedHash)S.project.revision=job.project_revision;}
+    setStatus("moss-status",text,view);syncButtons();}});
+  if(job?.status!=="succeeded")return;
+  S.hasResult=true;showView("result");
+  showResult("moss",job,`種子 ${job.seed} · ${job.record.seconds.toFixed(1)} 秒 · 工作流 ${job.record.workflow_hash.slice(0,12)} · 本地已保存，尚未匯出專案`);
 }
 // Project menu lives in a lazily rendered accordion, so it is bound by delegation.
 async function fillProjectList(){const list=$("project-list");if(!list)return;
+  if(document.activeElement!==$("project-name"))$("project-name").value=S.project.name;
   const projects=await request("/api/projects");list.replaceChildren();
   for(const p of projects){const o=document.createElement("option");o.value=p.id;
     o.textContent=`${p.name}${p.id===S.project?.id?"（目前）":""} · ${p.updated_at.slice(0,16).replace("T"," ")}`;list.append(o);}
@@ -129,10 +101,36 @@ async function switchTo(id,note){
   localStorage.setItem("moss_studio_project",id);
   for(const key of ["moss_studio_job","moss_edit_job","moss_inpaint_job","moss_control_job"])localStorage.removeItem(key);
   $("project-menu-status").textContent=note;location.reload();}
+const menuNote=(text)=>{$("project-menu-status").textContent=text;};
+async function renameProject(){const name=$("project-name").value.trim();
+  if(!name){menuNote("請輸入專案名稱");return;}
+  if(name===S.project.name){menuNote("名稱沒有變更");return;}
+  try{clearTimeout(S.timer);await save();
+    const project=await request(`/api/projects/${S.project.id}`,{method:"PATCH",body:{name,expected_revision:S.project.revision}});
+    S.project.revision=project.revision;S.project.name=project.name;$("moss-project").textContent=project.name;
+    menuNote(`已改名為「${project.name}」`);await fillProjectList();
+  }catch(error){menuNote("改名失敗："+error.message);}}
+async function deleteProject(){
+  if(active()||S.pending){menuNote("請先等目前工作完成或取消，再刪除專案");return;}
+  if(!confirm(`刪除專案「${S.project.name}」？它會從專案清單移除（含草稿與作品清單）。要保留的作品請先下載或匯出。`))return;
+  try{clearTimeout(S.timer);
+    // Other tabs may have saved drafts since this page last synced; delete what is current.
+    const current=await request(`/api/projects/${S.project.id}`);
+    await request(`/api/projects/${S.project.id}?expected_revision=${current.revision}`,{method:"DELETE"});
+    const rest=(await request("/api/projects")).filter(p=>p.id!==S.project.id);
+    const next=rest[0]||await request("/api/projects",{method:"POST",body:{name:"未命名創作"}});
+    S.dirty=false;S.conflict=true;  // nothing left to save into the deleted project
+    await switchTo(next.id,"專案已刪除，正在開啟另一個專案…");
+  }catch(error){menuNote("刪除失敗："+error.message);}}
 function bindProjectMenu(){
-  document.addEventListener("focusin",(e)=>{if(e.target.id==="project-list")fillProjectList().catch(err=>message(err.message));});
+  // First hover or focus inside the menu fills it; the accordion body does not exist before.
+  const prepare=(e)=>{const menu=e.target.closest?.("#project-menu");if(!menu||menu.dataset.ready)return;
+    menu.dataset.ready="1";fillProjectList().catch(err=>menuNote(err.message));};
+  document.addEventListener("pointerover",prepare);document.addEventListener("focusin",prepare);
   document.addEventListener("click",(e)=>{
     if(e.target.id==="project-export"&&S.project)e.target.href=`/api/projects/${S.project.id}/export`;
+    if(e.target.id==="project-rename")renameProject();
+    if(e.target.id==="project-delete")deleteProject();
     if(e.target.id==="project-open"){const id=$("project-list").value;
       if(id&&id!==S.project.id)switchTo(id,"正在開啟專案…");}});
   document.addEventListener("change",async(e)=>{if(e.target.id!=="project-import")return;
@@ -143,7 +141,7 @@ function bindProjectMenu(){
       await switchTo(project.id,`已匯入「${project.name}」，正在開啟…`);
     }catch(error){$("project-menu-status").textContent="匯入失敗："+error.message+"；現有專案未受影響";}});}
 window.mossStudio={
-  async init(){const session=await request("/api/session");S.csrf=session.csrf;S.session=session;bindProjectMenu();
+  async init(){S.session=await loadSession();bindProjectMenu();bindWorkbench();
     $("moss-edit-layout").onclick=()=>showView("layout");
     $("moss-view-result").onclick=()=>showView("result");
     S.canvas=new LayoutCanvas(request,scheduleSave,()=>S.form?.[0]||"");
@@ -155,12 +153,12 @@ window.mossStudio={
     if(id)try{project=await request("/api/projects/"+encodeURIComponent(id));}
       catch(error){if(error.status!==404)throw error;localStorage.removeItem("moss_studio_project");}
     if(!project){project=await request("/api/projects",{method:"POST",body:{name:"未命名創作"}});localStorage.setItem("moss_studio_project",project.id);}
-    const values=await loadProject(project);loadLoras();
+    const values=await loadProject(project);loadLoras();syncButtons();
     const pending=localStorage.getItem("moss_studio_pending");
     if(pending){S.pending=JSON.parse(pending);
       try{const found=await request(`/api/jobs/request/${S.pending.project_id}/${S.pending.client_request_id}`);
         localStorage.setItem("moss_studio_job",found.id);localStorage.removeItem("moss_studio_pending");S.pending=null;}
-      catch(error){message("前次提交尚未確認；按產生圖片以相同內容核對。"+error.message);return values;}}
+      catch(error){message("前次提交尚未確認；按產生圖片以相同內容核對。"+error.message,"warn");return values;}}
     const job=localStorage.getItem("moss_studio_job");if(job)poll(job);return values;
   },
   touch(values){if(!S.canvas||!S.project)return;setForm(values);showProfile(values[6]);if(values[5])showView("layout");scheduleSave();},
@@ -168,16 +166,17 @@ window.mossStudio={
     return Object.keys(presets).find(k=>presets[k][0]===width&&presets[k][1]===height)||"custom";},
   applyAspect(aspect,values,presets){const size=presets[aspect];if(!size)return [values[2],values[3]];
     const next=[...values];next[2]=size[0];next[3]=size[1];this.touch(next);return size;},
-  async refreshSession(){if(!S.session)return;S.session=await request("/api/session");
+  async refreshSession(){if(!S.session)return;S.session=await loadSession();
     showProfile((S.form||defaults)[6]);await loadLoras();},
   async submit(values){if(S.submitting)return;
-    if(active()){message("已有工作進行中；可編輯下一份草稿，或取消目前工作。");return;}
-    S.submitting=true;
+    if(active()){message("已有工作進行中；可編輯下一份草稿，或取消目前工作。","warn");return;}
+    if(!S.pending&&!String(values[0]).trim()&&!values[5]){message("請先輸入想要的畫面，再按產生圖片。","warn");reveal("moss-status");return;}
+    S.submitting=true;reveal("moss-status");
     try{let payload=S.pending;
       if(!payload){setForm(values);
       clearTimeout(S.timer);await save();
       // The backbone may have been switched on the model tab since this page loaded.
-      S.session=await request("/api/session");
+      S.session=await loadSession();
       const [prompt,negative,width,height,seed,layout,profile]=values;
       if(profileOf(profile)&&!profileOf(profile).negative_prompt&&negative.trim())
         throw Error("加速 8 步不使用負向提示詞；請清空進階設定中的負向提示詞，或改用精細 50 步");
@@ -186,21 +185,21 @@ window.mossStudio={
         prompt,negative_prompt:negative,width:Number(width),height:Number(height),seed:seed.trim()||null,
         references:[],layout:layout?S.canvas.json():null,mask_asset_id:null,control:null,lora_stack:profile==="quality50_v1"?loraStack():[]};
       S.pending=payload;localStorage.setItem("moss_studio_pending",JSON.stringify(payload));}
-      message("正在驗證工作…");const job=await request("/api/jobs",{method:"POST",body:payload});
+      message("正在驗證工作…","running");const job=await request("/api/jobs",{method:"POST",body:payload});
       S.pending=null;localStorage.removeItem("moss_studio_pending");S.active=job;
       S.project.revision=job.project_revision;localStorage.setItem("moss_studio_job",job.id);poll(job.id);
     }catch(error){if(error.status===422){S.pending=null;localStorage.removeItem("moss_studio_pending");}
-      message(error.message+(S.pending?"；提交狀態未確認，再按產生圖片會核對相同工作，不會建立新識別碼。":""));
-    }finally{S.submitting=false;if(S.dirty)scheduleSave();}
+      message(error.message+(S.pending?"；提交狀態未確認，再按產生圖片會核對相同工作，不會建立新識別碼。":""),error.status?"error":"warn");
+    }finally{S.submitting=false;syncButtons();if(S.dirty)scheduleSave();}
   },
   async cancel(){if(!S.active)return;try{await request(`/api/jobs/${S.active.id}/cancel`,{method:"POST"});
-    message("已要求取消，等候引擎確認");}catch(error){message(error.message);}},
+    message("已要求取消，等候引擎確認","warn");}catch(error){message(error.message,"error");}},
   async newProject(){if(active()||S.pending){
-      message("請先等目前工作完成或取消，再切換專案");return S.form;}
+      message("請先等目前工作完成或取消，再切換專案","warn");return S.form;}
     clearTimeout(S.timer);await save();const project=await request("/api/projects",{method:"POST",body:{name:"新創作"}});
     localStorage.setItem("moss_studio_project",project.id);localStorage.removeItem("moss_studio_job");
-    S.active=null;S.pollToken++;S.hasResult=false;$("moss-empty").style.display="flex";
-    $("moss-result").hidden=true;$("moss-download").hidden=true;$("moss-works").hidden=true;
-    message("新專案已建立，請輸入創作內容");return loadProject(project);
+    for(const key of ["moss_edit_job","moss_inpaint_job","moss_control_job"])localStorage.removeItem(key);
+    S.active=null;S.pollToken++;S.hasResult=false;clearResult("moss");syncButtons();
+    message("新專案已建立，請輸入創作內容");const values=await loadProject(project);refreshGallery();return values;
   }
 };

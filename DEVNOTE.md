@@ -8,6 +8,9 @@ Stage 9 精簡批次 E（AC-01、preflight、契約測試、AC-06、AC-18）與 
 剩下未驗：自加 HF LoRA 的 GPU 實測。
 本機（Windows 11、Python 3.13.15）213 passed、7 skipped，ruff 通過。
 
+2026-11-11（Claude Code）：UI／UX 優化（分支 claude/modest-pascal-yhdct5）屬「程式完成」，只在假引擎驗過，未在 L4 重跑；
+沒有改任何工作流、profile 或 JobSpec，既有 GPU 證據不受影響。Linux、Python 3.13.18：218 passed、5 skipped，ruff 通過。
+
 # DECISIONS
 v1.3：視覺參考降為實驗；2K 改為原生 ≤2.2 MP＋分段放大，原生 2048² 為實驗；刪 FP8 編碼器；
 fast8 依作者 Space（lora_latest 0.7、8 步、CFG 1）；edit／control 依官方 workflow_templates 參數。
@@ -27,6 +30,12 @@ HF token（選填）：第 2 格勾 USE_HF_TOKEN 時只從 Colab Secrets 讀 HF_
 模型刪除：使用中主模型、共用編碼器／VAE、工作進行中、下載中一律 409；工作快照自帶 model_artifact_id，伺服器不強制等於使用中主模型。
 批次 C 素材用 fast8 在同一工作階段生成再以 kind=input 上傳（無真人照片、無授權問題）；AC-09 柔邊外逐像素由腳本自動量測，其餘人工評分。
 
+前端共用件集中在 static/widgets.js（狀態列、拖放／貼上、結果面板、接力、作品集）與 ui/workbench_parts.py（樣式與標記）；
+studio.js 改用 api.js 的 request／pollJob，不再自帶一份。分頁版面一律「左輸入、右狀態＋結果」，窄螢幕上下堆疊。
+「接著做」把作品當檔案走既有上傳路徑（kind=input），因為修圖／重繪／控制的參考圖只收 input；放大可直接選 output。
+縮圖 GET /api/assets/{p}/{a}/thumbnail（384 px JPEG、記憶體快取）；專案改名 PATCH、刪除 DELETE /api/projects/{id}（移入 trash、有未完成工作時 409）。
+工作回應多了 created_at；inpaint 的 JobRecord 多了 source_asset_id（比較原圖用）。
+
 # VALIDATION
 CPU：189 passed／7 skipped（3 載入探測、2 長 GPU、1 /proc、1 symlink）。node --check 全部前端模組。
 假引擎瀏覽器（scripts/dev_server.py，非 GPU 證據）：五分頁主流程、fast8 負向詞攔截、修圖空格重編號、
@@ -36,10 +45,16 @@ docs/evidence/stage3-batch-b（AC-06 通過 10.4–10.5 s；auto 111.06 s vs low
 Windows 間歇失敗的真因是讀檔與 os.replace 互斥（PermissionError）；atomic.py Windows 分支加短暫重試後連跑 6 次全過。
 批次 C、D 腳本已在假引擎全段試跑（含中斷重跑取回原工作、AC-15 匯入比對與續編）；假引擎輸出不是 GPU 證據。
 
+2026-11-11 假引擎瀏覽器（Playwright，1366 與 390 寬，非 GPU 證據）：生成→進度／剩餘時間→結果→接力到修圖→重繪→放大、
+空提示詞與空遮罩攔截、重整後接回工作、取消、專案改名與刪除、作品集；無 console 錯誤。
+tests/unit/test_ui_transport.py 會比對腳本用到的元素 id 是否都在標記裡。
+
 # LANDMINES
 不要把假引擎、CPU 測試或 docs/stages/stage3-8.md 的「程式完成」寫成 PASS。
 瀏覽器工具的 type 動作不觸發 Gradio input 事件；測試草稿保存要用實際按鍵（key）。
 Gradio 收合區塊與分頁延遲建立 DOM：新分頁用 tab.select 載入模組，專案選單用事件委派。
+窄螢幕時 Gradio 把放不下的分頁收進 .overflow-dropdown（沒有 role=tab）；程式切分頁要兩處都找（widgets.js sendTo）。
+自訂 HTML 內用 hidden 屬性的元素不要再給 inline display，否則 hidden 失效（舊版重繪分頁的破圖示就是這樣來的）。
 Windows 預設 cp950：讀 JSON 設定一律 encoding="utf-8"。
 runtime.lock.json 的 engine_vram_mode 已依批次 B 改為 auto（與 lowvram 差異在雜訊內）。
 AC-19 未達 8/10：README 與文生圖分頁已標示繁中限制；失敗型態為近形字替換與框描述字詞滲入標題。
@@ -67,3 +82,4 @@ PR #1 合併進 main（8a6f07f）。使用者接受 AC-19 限制並指示續做�
 2026-11-08：精簡批次 E 通過；同一台 VM 經 Cloudflare 通道實測 AC-03（登入連結、上傳、進度、取消、重連、下載、無 SSE）通過。
 2026-11-08：Stage 10 文件完成，PR #2 合併進 main（8218cc3）；第 2 格改為預設下載 Base 以外的全部模型（PR #3）。
 2026-11-08：使用者自行依 README 在乾淨 L4 重演（main b00af07），回報各項正常；Stage 10 完成。
+2026-11-11：UI／UX 優化（狀態列與進度、拖放貼上、作品接力、作品集、專案改名刪除、重繪筆刷游標與比較、版面與手機寬度）；假引擎驗證。
